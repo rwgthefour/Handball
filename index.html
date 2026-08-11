@@ -114,6 +114,13 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .bbcard .fields .fr:last-child{border-bottom:none}
 .bbcard .fields .fl{color:var(--ink-mut);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:2px}
 .bbcard .fields .fv{color:var(--ink);font-weight:650;text-align:right}
+#tm-list .tmrow{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+#tm-list .tmrow .sec{font-size:10px;letter-spacing:.1em;color:var(--ink-mut);font-weight:700;width:52px}
+#tm-list .tmrow b{flex:1;min-width:140px}
+#tm-list .tmrow button{border:1px solid var(--steel);background:#fff;padding:5px 10px;font-size:12px;cursor:pointer}
+#tm-list .tmrow button:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
+#tm-editor{border-top:2px solid var(--afa-blue);margin-top:12px;padding-top:12px}
+#tm-photo-prev{width:96px;height:128px;object-fit:cover;border:1px solid var(--steel);background:#eef1f6;display:block}
 
 main{max-width:1240px;margin:0 auto;padding:16px}
 section.tab{display:none}
@@ -526,6 +533,52 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
 <!-- ================= ROSTER / TEAM TAB ================= -->
 <section class="tab" id="tab-roster">
   <div id="team-cards"></div>
+
+  <div class="card adminonly" id="team-mgr-card">
+    <h2>Team card manager</h2>
+    <details class="help"><summary>How publishing works</summary><div class="bd">
+      Build the cards right here — add coaches and players, upload portraits (any phone photo;
+      it is cropped to card size automatically). Your edits show on <b>this device</b> immediately.
+      To publish them to the whole team: press <b>DOWNLOAD team.json</b>, then on github.com open
+      the repo's <b>data</b> folder → <b>Add file → Upload files</b> → drop the file in (replacing
+      the old one) → Commit. The site updates for everyone about a minute later. To edit what is
+      already published from a fresh device, press <b>LOAD PUBLISHED CARDS</b> first.
+    </div></details>
+    <div id="tm-list"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="tm-add-coach">+ ADD COACH</button>
+      <button class="btn" id="tm-add-player">+ ADD PLAYER</button>
+      <div class="spacer"></div>
+      <button class="btn pri" id="tm-download">⬇ DOWNLOAD team.json TO PUBLISH</button>
+      <button class="btn" id="tm-load-published">LOAD PUBLISHED CARDS</button>
+      <button class="btn danger" id="tm-reset">DISCARD LOCAL EDITS</button>
+    </div>
+    <div id="tm-editor" style="display:none">
+      <div class="row">
+        <div class="fld"><label>Section</label>
+          <select id="tm-sec"><option value="coach">Coach</option><option value="player">Player</option></select></div>
+        <div class="fld"><label>Title / name</label><input id="tm-name" placeholder="C1C First M. Last" style="width:230px"></div>
+        <div class="fld"><label>Role line (optional)</label><input id="tm-role" placeholder="Team Captain · Head Coach…" style="width:190px"></div>
+        <label class="small" style="display:flex;align-items:center;gap:6px;font-weight:600">
+          <input type="checkbox" id="tm-badge"> gold CAPTAIN ribbon</label>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Position</label><input id="tm-pos" style="width:150px"></div>
+        <div class="fld"><label>Hometown</label><input id="tm-home" style="width:190px"></div>
+        <div class="fld"><label>Major</label><input id="tm-major" style="width:190px"></div>
+        <div class="fld"><label>Intended career field</label><input id="tm-career" style="width:170px"></div>
+      </div>
+      <div class="row" style="align-items:center">
+        <img id="tm-photo-prev" alt="Portrait preview">
+        <div class="fld"><label>Portrait photo</label>
+          <input type="file" id="tm-photo" accept="image/*">
+          <span class="small muted">any phone photo works — cropped to card size automatically</span></div>
+        <button class="btn" id="tm-photo-clear">REMOVE PHOTO</button>
+      </div>
+      <div class="row"><button class="btn pri" id="tm-save">SAVE CARD</button><button class="btn" id="tm-cancel">CANCEL</button></div>
+    </div>
+  </div>
+
   <div class="card collapsed adminonly" id="manage-roster-card">
     <h2 class="tgl" id="mroster-toggle">Stat roster — jersey numbers &amp; dressed list <span id="mroster-arrow">▸</span></h2>
     <div id="mroster-body">
@@ -989,34 +1042,50 @@ $('#mroster-toggle').addEventListener('click', () => {
 
 /* ---------- the team page: baseball cards ----------
    Standard player format (owner, 11 Aug 2026): Position / Title (rank + name) /
-   Hometown / Major / Intended Career Field. Coaches section leads. Photos come
-   from the PHOTOS bundle — drop image files in the repo's photos/ folder named
-   by the card's photo key and rebuild; until then a crest placeholder shows. */
-const TEAM_PAGE = {
-  coaches: [
-    { name: 'Mike Cavanaugh', role: 'Head Coach', photo: 'cavanaugh', fields: {} },
-  ],
-  players: [
-    { name: 'C1C Jack P. Tierney', role: 'Team Captain', badge: 'TEAM CAPTAIN', photo: 'tierney', fields: {
-      'Position': 'Center Back',
-      'Hometown': 'Iowa City, Iowa',
-      'Major': 'Systems Engineering',
-      'Intended Career Field': 'Pilot',
-    } },
-  ],
-};
-function bbCard(p) {
+   Hometown / Major / Intended Career Field. Coaches section leads.
+   The cards are DATA, built in the admin Team card manager: photos upload in
+   the browser (auto-cropped to card size), edits save on that device, and
+   publishing = downloading team.json and committing it to the repo's data/
+   folder, where the site loads it for every visitor. Display precedence:
+   this device's working copy → the published data/team.json → the built-in
+   starter pair. A card's photo is a data URI once uploaded; the starter
+   cards may instead name a key in the build-time PHOTOS bundle. */
+const DEFAULT_TEAM = { v: 1, cards: [
+  { id: 'c-cav', sec: 'coach', name: 'Mike Cavanaugh', role: 'Head Coach', badge: false,
+    photo: 'cavanaugh', pos: '', home: '', major: '', career: '' },
+  { id: 'p-tie', sec: 'player', name: 'C1C Jack P. Tierney', role: 'Team Captain', badge: true,
+    photo: 'tierney', pos: 'Center Back', home: 'Iowa City, Iowa', major: 'Systems Engineering', career: 'Pilot' },
+] };
+let teamLocal = sanitizeTeam(lsGet('afahb.team.v1', null));   // this device's working copy
+let repoTeam = null;                                          // published data/team.json
+function sanitizeTeam(t) {
+  if (!t || !Array.isArray(t.cards)) return null;
+  const cards = t.cards.filter(c => c && String(c.name || '').trim()).map(c => ({
+    id: String(c.id || uid()), sec: c.sec === 'coach' ? 'coach' : 'player',
+    name: String(c.name), role: String(c.role || ''), badge: !!c.badge,
+    photo: String(c.photo || ''), pos: String(c.pos || ''), home: String(c.home || ''),
+    major: String(c.major || ''), career: String(c.career || '') }));
+  return cards.length ? { v: 1, cards } : null;
+}
+function activeTeam() { return teamLocal || repoTeam || DEFAULT_TEAM; }
+function cardPhotoSrc(c) {
+  if (c.photo && c.photo.startsWith('data:')) return c.photo;
+  if (c.photo && typeof PHOTOS !== 'undefined' && PHOTOS && PHOTOS[c.photo]) return PHOTOS[c.photo];
+  return null;
+}
+function bbCard(c) {
   const ph = el('div', { cls: 'ph' });
-  const photo = (typeof PHOTOS !== 'undefined' && PHOTOS && PHOTOS[p.photo]) || null;
-  if (photo) ph.appendChild(el('img', { src: photo, alt: p.name }));
+  const src = cardPhotoSrc(c);
+  if (src) ph.appendChild(el('img', { src, alt: c.name }));
   else ph.appendChild(el('div', { cls: 'noimg' },
     el('img', { src: LOGOS.airforce, alt: '' }),
     el('span', { text: 'PHOTO COMING SOON' })));
-  if (p.badge) ph.appendChild(el('div', { cls: 'badge', text: p.badge }));
+  if (c.badge) ph.appendChild(el('div', { cls: 'badge', text: 'TEAM CAPTAIN' }));
   const frame = el('div', { cls: 'frame' }, ph,
-    el('div', { cls: 'nm', text: p.name }),
-    el('div', { cls: 'role', text: p.role || '' }));
-  const entries = Object.entries(p.fields || {});
+    el('div', { cls: 'nm', text: c.name }),
+    el('div', { cls: 'role', text: c.role || '' }));
+  const entries = [['Position', c.pos], ['Hometown', c.home], ['Major', c.major], ['Intended Career Field', c.career]]
+    .filter(e => String(e[1] || '').trim());
   if (entries.length) {
     const fields = el('div', { cls: 'fields' });
     for (const [k, v] of entries)
@@ -1027,16 +1096,135 @@ function bbCard(p) {
 }
 function renderTeamCards() {
   const host = $('#team-cards'); host.textContent = '';
+  const cards = activeTeam().cards;
   const sec = (title, list) => {
     if (!list.length) return;
     const s = el('div', { cls: 'team-sec' }, el('h2', { text: title }));
     const g = el('div', { cls: 'bbgrid' + (list.length < 3 ? ' solo' : '') });
-    for (const p of list) g.appendChild(bbCard(p));
+    for (const c of list) g.appendChild(bbCard(c));
     s.appendChild(g); host.appendChild(s);
   };
-  sec('Coaches', TEAM_PAGE.coaches);
-  sec('Players', TEAM_PAGE.players);
+  sec('Coaches', cards.filter(c => c.sec === 'coach'));
+  sec('Players', cards.filter(c => c.sec !== 'coach'));
+  renderTmList();
 }
+
+/* ---------- team card manager (admin) ---------- */
+let tmEditing = null;     // card id being edited, or null
+let tmPhoto = '';         // pending photo data URI for the editor
+function ensureTeamLocal() {
+  if (!teamLocal) teamLocal = JSON.parse(JSON.stringify(activeTeam()));
+  return teamLocal;
+}
+function saveTeamLocal() { lsSet('afahb.team.v1', teamLocal); renderTeamCards(); }
+function renderTmList() {
+  const host = $('#tm-list'); if (!host) return;
+  host.textContent = '';
+  const cards = activeTeam().cards;
+  cards.forEach((c, i) => {
+    const row = el('div', { cls: 'tmrow' },
+      el('span', { cls: 'sec', text: c.sec.toUpperCase() }),
+      el('b', { text: c.name + (c.badge ? ' ★' : '') }),
+      el('span', { cls: 'small muted', text: cardPhotoSrc(c) ? 'photo ✓' : 'no photo' }),
+      el('button', { text: '✎ EDIT', onclick: () => tmOpenEditor(c.id) }),
+      el('button', { text: '↑', title: 'Move up', onclick: () => tmMove(i, -1) }),
+      el('button', { text: '↓', title: 'Move down', onclick: () => tmMove(i, 1) }),
+      el('button', { text: '✕', title: 'Remove card', onclick: () => {
+        if (!confirm('Remove the card for ' + c.name + '?')) return;
+        ensureTeamLocal();
+        teamLocal.cards = teamLocal.cards.filter(x => x.id !== c.id);
+        saveTeamLocal();
+      } }));
+    host.appendChild(row);
+  });
+  if (!cards.length) host.appendChild(el('div', { cls: 'small muted', text: 'No cards yet — add a coach or a player below.' }));
+}
+function tmMove(i, dir) {
+  ensureTeamLocal();
+  const a = teamLocal.cards, j = i + dir;
+  if (j < 0 || j >= a.length) return;
+  [a[i], a[j]] = [a[j], a[i]];
+  saveTeamLocal();
+}
+function tmOpenEditor(id) {
+  ensureTeamLocal();
+  const c = id ? teamLocal.cards.find(x => x.id === id) : null;
+  tmEditing = c ? c.id : null;
+  tmPhoto = c ? (cardPhotoSrc(c) || '') : '';
+  $('#tm-sec').value = c ? c.sec : 'player';
+  $('#tm-name').value = c ? c.name : '';
+  $('#tm-role').value = c ? c.role : '';
+  $('#tm-badge').checked = c ? c.badge : false;
+  $('#tm-pos').value = c ? c.pos : '';
+  $('#tm-home').value = c ? c.home : '';
+  $('#tm-major').value = c ? c.major : '';
+  $('#tm-career').value = c ? c.career : '';
+  const prev = $('#tm-photo-prev');
+  if (tmPhoto) prev.src = tmPhoto; else prev.removeAttribute('src');
+  $('#tm-photo').value = '';
+  $('#tm-editor').style.display = 'block';
+  $('#tm-name').focus();
+}
+$('#tm-add-coach').addEventListener('click', () => { tmOpenEditor(null); $('#tm-sec').value = 'coach'; });
+$('#tm-add-player').addEventListener('click', () => { tmOpenEditor(null); $('#tm-sec').value = 'player'; });
+$('#tm-cancel').addEventListener('click', () => { $('#tm-editor').style.display = 'none'; tmEditing = null; });
+$('#tm-save').addEventListener('click', () => {
+  const name = $('#tm-name').value.trim();
+  if (!name) { toast('Enter the title / name'); return; }
+  ensureTeamLocal();
+  const card = {
+    id: tmEditing || uid(), sec: $('#tm-sec').value === 'coach' ? 'coach' : 'player',
+    name, role: $('#tm-role').value.trim(), badge: $('#tm-badge').checked,
+    photo: tmPhoto || '', pos: $('#tm-pos').value.trim(), home: $('#tm-home').value.trim(),
+    major: $('#tm-major').value.trim(), career: $('#tm-career').value.trim(),
+  };
+  const ix = teamLocal.cards.findIndex(x => x.id === card.id);
+  if (ix >= 0) teamLocal.cards[ix] = card; else teamLocal.cards.push(card);
+  saveTeamLocal();
+  $('#tm-editor').style.display = 'none'; tmEditing = null;
+  toast(card.name + ' saved — publish with DOWNLOAD team.json when ready');
+});
+/* photo upload: cover-crop to the card's 3:4 in the browser, ~50 KB JPEG */
+$('#tm-photo').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i); i.onerror = rej;
+      i.src = URL.createObjectURL(f);
+    });
+    const W = 480, H = 640, s = Math.max(W / img.width, H / img.height);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    cv.getContext('2d').drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
+    tmPhoto = cv.toDataURL('image/jpeg', 0.82);
+    $('#tm-photo-prev').src = tmPhoto;
+  } catch (e) { toast('Could not read that image'); }
+});
+$('#tm-photo-clear').addEventListener('click', () => { tmPhoto = ''; $('#tm-photo-prev').removeAttribute('src'); });
+$('#tm-download').addEventListener('click', () => {
+  const data = JSON.stringify(activeTeam(), null, 1);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = 'team.json';
+  a.click();
+  toast('team.json downloaded — upload it to the repo\'s data/ folder to publish');
+});
+$('#tm-load-published').addEventListener('click', async () => {
+  if (!(location.protocol === 'http:' || location.protocol === 'https:')) { toast('Open the team website to load the published cards'); return; }
+  try {
+    const r = await fetch('data/team.json', { cache: 'no-cache' });
+    if (!r.ok) { toast('No published team.json yet'); return; }
+    const t = sanitizeTeam(await r.json());
+    if (!t) { toast('Published team.json is empty'); return; }
+    teamLocal = t; saveTeamLocal();
+    toast('Published cards loaded for editing');
+  } catch (e) { toast('Could not load the published cards'); }
+});
+$('#tm-reset').addEventListener('click', () => {
+  if (!confirm('Discard the edits on this device and show the published cards?')) return;
+  teamLocal = null; lsSet('afahb.team.v1', null);
+  renderTeamCards();
+});
 
 /* ---------- game lifecycle ---------- */
 function newGameFromForm() {
@@ -1939,6 +2127,14 @@ async function loadRepoGames() {
   if ($('#tab-season').classList.contains('on')) renderSeason();
   renderHome();
 }
+async function loadRepoTeam() {
+  if (!isHosted()) return;
+  try {
+    const r = await fetch('data/team.json', { cache: 'no-cache' }); if (!r.ok) return;
+    const t = sanitizeTeam(await r.json());
+    if (t) { repoTeam = t; renderTeamCards(); }
+  } catch (e) { /* no published cards yet — the starter pair shows */ }
+}
 async function loadRepoRoster() {
   if (!isHosted() || roster.length) return;     // never overwrite a roster someone built
   try {
@@ -2468,8 +2664,9 @@ $('#btn-season-export').addEventListener('click', () => {
   } else {
     renderHome();
   }
-  loadRepoRoster();     // both are best-effort async — offline copies skip them
+  loadRepoRoster();     // all three are best-effort async — offline copies skip them
   loadRepoGames();
+  loadRepoTeam();
 })();
 
 </script>

@@ -495,6 +495,7 @@ $('#btn-season-export').addEventListener('click', () => {
   } else {
     renderHome();
   }
-  loadRepoRoster();     // both are best-effort async — offline copies skip them
+  loadRepoRoster();     // all three are best-effort async — offline copies skip them
   loadRepoGames();
+  loadRepoTeam();
 })();

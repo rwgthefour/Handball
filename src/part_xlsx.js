@@ -430,6 +430,14 @@ async function loadRepoGames() {
   if ($('#tab-season').classList.contains('on')) renderSeason();
   renderHome();
 }
+async function loadRepoTeam() {
+  if (!isHosted()) return;
+  try {
+    const r = await fetch('data/team.json', { cache: 'no-cache' }); if (!r.ok) return;
+    const t = sanitizeTeam(await r.json());
+    if (t) { repoTeam = t; renderTeamCards(); }
+  } catch (e) { /* no published cards yet — the starter pair shows */ }
+}
 async function loadRepoRoster() {
   if (!isHosted() || roster.length) return;     // never overwrite a roster someone built
   try {

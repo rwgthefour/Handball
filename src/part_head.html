@@ -114,6 +114,13 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .bbcard .fields .fr:last-child{border-bottom:none}
 .bbcard .fields .fl{color:var(--ink-mut);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:2px}
 .bbcard .fields .fv{color:var(--ink);font-weight:650;text-align:right}
+#tm-list .tmrow{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+#tm-list .tmrow .sec{font-size:10px;letter-spacing:.1em;color:var(--ink-mut);font-weight:700;width:52px}
+#tm-list .tmrow b{flex:1;min-width:140px}
+#tm-list .tmrow button{border:1px solid var(--steel);background:#fff;padding:5px 10px;font-size:12px;cursor:pointer}
+#tm-list .tmrow button:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
+#tm-editor{border-top:2px solid var(--afa-blue);margin-top:12px;padding-top:12px}
+#tm-photo-prev{width:96px;height:128px;object-fit:cover;border:1px solid var(--steel);background:#eef1f6;display:block}
 
 main{max-width:1240px;margin:0 auto;padding:16px}
 section.tab{display:none}
@@ -526,6 +533,52 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
 <!-- ================= ROSTER / TEAM TAB ================= -->
 <section class="tab" id="tab-roster">
   <div id="team-cards"></div>
+
+  <div class="card adminonly" id="team-mgr-card">
+    <h2>Team card manager</h2>
+    <details class="help"><summary>How publishing works</summary><div class="bd">
+      Build the cards right here — add coaches and players, upload portraits (any phone photo;
+      it is cropped to card size automatically). Your edits show on <b>this device</b> immediately.
+      To publish them to the whole team: press <b>DOWNLOAD team.json</b>, then on github.com open
+      the repo's <b>data</b> folder → <b>Add file → Upload files</b> → drop the file in (replacing
+      the old one) → Commit. The site updates for everyone about a minute later. To edit what is
+      already published from a fresh device, press <b>LOAD PUBLISHED CARDS</b> first.
+    </div></details>
+    <div id="tm-list"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="tm-add-coach">+ ADD COACH</button>
+      <button class="btn" id="tm-add-player">+ ADD PLAYER</button>
+      <div class="spacer"></div>
+      <button class="btn pri" id="tm-download">⬇ DOWNLOAD team.json TO PUBLISH</button>
+      <button class="btn" id="tm-load-published">LOAD PUBLISHED CARDS</button>
+      <button class="btn danger" id="tm-reset">DISCARD LOCAL EDITS</button>
+    </div>
+    <div id="tm-editor" style="display:none">
+      <div class="row">
+        <div class="fld"><label>Section</label>
+          <select id="tm-sec"><option value="coach">Coach</option><option value="player">Player</option></select></div>
+        <div class="fld"><label>Title / name</label><input id="tm-name" placeholder="C1C First M. Last" style="width:230px"></div>
+        <div class="fld"><label>Role line (optional)</label><input id="tm-role" placeholder="Team Captain · Head Coach…" style="width:190px"></div>
+        <label class="small" style="display:flex;align-items:center;gap:6px;font-weight:600">
+          <input type="checkbox" id="tm-badge"> gold CAPTAIN ribbon</label>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Position</label><input id="tm-pos" style="width:150px"></div>
+        <div class="fld"><label>Hometown</label><input id="tm-home" style="width:190px"></div>
+        <div class="fld"><label>Major</label><input id="tm-major" style="width:190px"></div>
+        <div class="fld"><label>Intended career field</label><input id="tm-career" style="width:170px"></div>
+      </div>
+      <div class="row" style="align-items:center">
+        <img id="tm-photo-prev" alt="Portrait preview">
+        <div class="fld"><label>Portrait photo</label>
+          <input type="file" id="tm-photo" accept="image/*">
+          <span class="small muted">any phone photo works — cropped to card size automatically</span></div>
+        <button class="btn" id="tm-photo-clear">REMOVE PHOTO</button>
+      </div>
+      <div class="row"><button class="btn pri" id="tm-save">SAVE CARD</button><button class="btn" id="tm-cancel">CANCEL</button></div>
+    </div>
+  </div>
+
   <div class="card collapsed adminonly" id="manage-roster-card">
     <h2 class="tgl" id="mroster-toggle">Stat roster — jersey numbers &amp; dressed list <span id="mroster-arrow">▸</span></h2>
     <div id="mroster-body">

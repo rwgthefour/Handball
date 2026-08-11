@@ -14,6 +14,25 @@ const PAGE = 'file://' + path.join(REPO_HB, 'index.html');
 const LEGACY = '/Users/willgarrett/Downloads/Handball Stats.xlsx';
 const ADMIN_PW = 'handball2027';
 
+/* --prep-hosted <dir>: build the staged copy the hosted section is served from
+   (repo page + games + roster + a TEST team.json), then exit. run_probe.sh
+   calls this before starting the server. */
+const TEST_TEAM = { v: 1, cards: [
+  { id: 'tc', sec: 'coach', name: 'Coach Hosted Check', role: 'Head Coach', badge: false, photo: '', pos: '', home: '', major: '', career: '' },
+  { id: 'tp', sec: 'player', name: 'C2C Hosted Check', role: '', badge: false, photo: '', pos: 'Pivot', home: 'Denver, Colorado', major: 'History', career: 'Intel' },
+] };
+if (process.argv[2] === '--prep-hosted') {
+  const stage = process.argv[3];
+  fs.rmSync(stage, { recursive: true, force: true });
+  fs.mkdirSync(path.join(stage, 'data'), { recursive: true });
+  fs.copyFileSync(path.join(REPO_HB, 'index.html'), path.join(stage, 'index.html'));
+  fs.cpSync(path.join(REPO_HB, 'games'), path.join(stage, 'games'), { recursive: true });
+  fs.copyFileSync(path.join(REPO_HB, 'data', 'roster.xlsx'), path.join(stage, 'data', 'roster.xlsx'));
+  fs.writeFileSync(path.join(stage, 'data', 'team.json'), JSON.stringify(TEST_TEAM));
+  console.log('hosted staging ready:', stage);
+  process.exit(0);
+}
+
 let pass = 0, fail = 0;
 function ok(name, cond, detail) {
   if (cond) { pass++; console.log('  ✓ ' + name); }
@@ -83,7 +102,53 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   ok('captain card carries the standard format', /C1C Jack P\. Tierney/.test(cardsTxt) && /Center Back/.test(cardsTxt)
     && /Iowa City, Iowa/.test(cardsTxt) && /Systems Engineering/.test(cardsTxt) && /Pilot/.test(cardsTxt));
   ok('captain ribbon shows', /TEAM CAPTAIN/.test(cardsTxt));
-  ok('photo placeholders render until portraits are dropped in', await page.$$eval('#team-cards .ph .noimg', n => n.length) === 2);
+  ok('photo placeholders render until portraits are uploaded', await page.$$eval('#team-cards .ph .noimg', n => n.length) === 2);
+
+  console.log('— team card manager (admin builds cards in the browser) —');
+  ok('manager visible for admin', await page.$eval('#team-mgr-card', e => getComputedStyle(e).display) !== 'none');
+  await page.click('#tm-add-player');
+  await page.fill('#tm-name', 'C4C Test Falcon');
+  await page.fill('#tm-role', 'Wing');
+  await page.fill('#tm-pos', 'Left Wing');
+  await page.fill('#tm-home', 'Reno, Nevada');
+  await page.fill('#tm-major', 'Astronautical Engineering');
+  await page.fill('#tm-career', 'Combat Systems Officer');
+  await page.setInputFiles('#tm-photo', path.join(REPO, 'Logos', 'AirForce.png'));
+  await page.waitForFunction(() => (document.getElementById('tm-photo-prev').src || '').startsWith('data:image/jpeg'));
+  await page.click('#tm-save');
+  const tc2 = await page.$eval('#team-cards', e => e.textContent);
+  ok('new card renders with the standard fields', /C4C Test Falcon/.test(tc2) && /Reno, Nevada/.test(tc2) && /Combat Systems Officer/.test(tc2), tc2.slice(0, 80));
+  ok('uploaded photo is card-cropped and replaces the placeholder', await page.evaluate(() => {
+    const card = Array.from(document.querySelectorAll('#team-cards .bbcard')).find(c => c.textContent.includes('C4C Test Falcon'));
+    const img = card && card.querySelector('.ph > img');
+    return !!img && img.src.startsWith('data:image/jpeg') && img.naturalWidth === 480 && img.naturalHeight === 640;
+  }));
+  const dlT = downloads.length;
+  await page.click('#tm-download');
+  await sleep(400);
+  ok('team.json downloads for publishing', downloads.length === dlT + 1);
+  const teamFile = path.join(SCRATCH, 'out_team.json');
+  await downloads[downloads.length - 1].saveAs(teamFile);
+  const tj = JSON.parse(fs.readFileSync(teamFile, 'utf8'));
+  ok('team.json carries all three cards incl. the photo',
+    tj.cards.length === 3 && tj.cards.some(c => c.name === 'C4C Test Falcon' && c.photo.startsWith('data:image/jpeg'))
+    && tj.cards.some(c => c.name === 'C1C Jack P. Tierney'));
+  await page.$$eval('#tm-list .tmrow', rows => {
+    for (const r of rows) if (r.textContent.includes('Test Falcon')) r.querySelector('button').click();   // ✎ EDIT
+  });
+  ok('editor reopens with the saved values', await page.$eval('#tm-name', e => e.value) === 'C4C Test Falcon');
+  await page.click('#tm-cancel');
+  await page.$$eval('#tm-list .tmrow', rows => {
+    for (const r of rows) if (r.textContent.includes('Test Falcon')) {
+      Array.from(r.querySelectorAll('button')).find(x => x.textContent === '✕').click();
+    }
+  });
+  await sleep(150);
+  ok('card deletes from the manager', !/C4C Test Falcon/.test(await page.$eval('#team-cards', e => e.textContent)));
+  await page.click('#tm-reset');
+  await sleep(150);
+  ok('discard local edits returns to the starter cards', /Tierney/.test(await page.$eval('#team-cards', e => e.textContent)));
+
   await openRosterMgmt(page);
   await page.click('#btn-demo-roster');
   ok('sample roster renders 12 players', await page.$$eval('#roster-table tr', r => r.length) === 13);
@@ -399,7 +464,9 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
     await p5.evaluate(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length) === 12);
   ok('hosted visitor still cannot see import controls', await p5.$eval('#dropzone', e => getComputedStyle(e).display) === 'none');
   await goTab(p5, 'roster');
-  ok('visitors get the team cards', /Tierney/.test(await p5.$eval('#team-cards', e => e.textContent)));
+  const hostedCards = await p5.$eval('#team-cards', e => e.textContent);
+  ok('published team.json drives the cards for every visitor', /C2C Hosted Check/.test(hostedCards) && /Denver, Colorado/.test(hostedCards), hostedCards.slice(0, 80));
+  ok('published cards replace the starter pair (no merge ghosts)', !/Tierney/.test(hostedCards));
 
   console.log('— mobile (375×812, touch) —');
   const ctx6 = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
