@@ -249,13 +249,141 @@ $('#btn-demo-roster').addEventListener('click', () => {
   saveRoster(); renderRoster(); refreshGameUI(); toast('Sample roster loaded');
 });
 
-/* ---------- tabs ---------- */
-$$('nav.tabs button').forEach(b => b.addEventListener('click', () => {
-  $$('nav.tabs button').forEach(x => x.classList.toggle('on', x === b));
-  $$('section.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + b.dataset.tab));
-  if (b.dataset.tab === 'season') renderSeason();
-  if (b.dataset.tab === 'roster') renderRoster();
-}));
+/* ---------- admin wall ----------
+   A courtesy gate, not a vault: the password lives in this public repo with
+   the owner's explicit OK. It keeps visitors in the showcase (home, team,
+   season dashboard) and puts everything that CHANGES data — game tracking,
+   the stat roster, imports, stored-game management — behind one unlock that
+   persists on the staff member's device. */
+const ADMIN_PW = 'handball2027';
+let adminOn = lsGet('afahb.admin.v1', false) === true;
+let _adminAfter = null;
+function applyAdminUI() {
+  document.body.classList.toggle('admin', adminOn);
+  $('#menu button[data-tab="game"]').textContent = adminOn ? 'GAME' : 'GAME 🔒';
+  $('#menu-admin').textContent = adminOn ? 'ADMIN — SIGN OUT' : 'ADMIN SIGN IN';
+}
+function openAdminModal(after) {
+  _adminAfter = after || null;
+  $('#admin-err').textContent = ''; $('#admin-pw').value = '';
+  $('#admin-modal').classList.add('open');
+  $('#admin-pw').focus();
+}
+$('#admin-cancel').addEventListener('click', () => $('#admin-modal').classList.remove('open'));
+$('#admin-go').addEventListener('click', () => {
+  if ($('#admin-pw').value === ADMIN_PW) {
+    adminOn = true; lsSet('afahb.admin.v1', true); applyAdminUI();
+    $('#admin-modal').classList.remove('open');
+    toast('Admin unlocked on this device');
+    const f = _adminAfter; _adminAfter = null; if (f) f();
+  } else $('#admin-err').textContent = 'Wrong password.';
+});
+$('#admin-pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#admin-go').click(); });
+$('#menu-admin').addEventListener('click', () => {
+  $('#menu').classList.remove('open');
+  if (adminOn) { adminOn = false; lsSet('afahb.admin.v1', false); applyAdminUI(); showTab('home'); toast('Admin locked'); }
+  else openAdminModal();
+});
+
+/* ---------- navigation: ☰ menu + welcome page ---------- */
+function showTab(name) {
+  if (name === 'game' && !adminOn) {
+    $('#menu').classList.remove('open');
+    openAdminModal(() => showTab('game'));
+    return;
+  }
+  $$('#menu button').forEach(x => x.classList.toggle('on', x.dataset.tab === name));
+  $$('section.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + name));
+  $('#menu').classList.remove('open');
+  $('#menu-btn').setAttribute('aria-expanded', 'false');
+  if (name === 'season') renderSeason();
+  if (name === 'roster') { renderTeamCards(); renderRoster(); }
+  if (name === 'home') renderHome();
+  window.scrollTo(0, 0);
+}
+$('#menu-btn').addEventListener('click', ev => {
+  ev.stopPropagation();
+  const open = $('#menu').classList.toggle('open');
+  $('#menu-btn').setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('.menu-wrap')) { $('#menu').classList.remove('open'); $('#menu-btn').setAttribute('aria-expanded', 'false'); }
+});
+$$('#menu button[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$$('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
+function renderHome() {
+  const r = $('#home-resume');
+  if (game && !game.done) {
+    const d = derive(game);
+    r.style.display = 'block';
+    r.textContent = '▶ RESUME LIVE GAME — Air Force ' + d.us + '–' + d.them + ' vs ' + game.info.opponent;
+  } else if (archived.length) {
+    r.style.display = 'block';
+    r.textContent = '📊 ' + archived.length + ' game(s) saved in this browser — open the season dashboard';
+  } else r.style.display = 'none';
+}
+$('#home-resume').addEventListener('click', () => showTab(game && !game.done ? 'game' : 'season'));
+
+/* collapsible game setup + roster manager */
+$('#setup-toggle').addEventListener('click', () => {
+  const c = $('#setup-card').classList.toggle('collapsed');
+  $('#setup-arrow').textContent = c ? '▸' : '▾';
+});
+$('#mroster-toggle').addEventListener('click', () => {
+  const c = $('#manage-roster-card').classList.toggle('collapsed');
+  $('#mroster-arrow').textContent = c ? '▸' : '▾';
+});
+
+/* ---------- the team page: baseball cards ----------
+   Standard player format (owner, 11 Aug 2026): Position / Title (rank + name) /
+   Hometown / Major / Intended Career Field. Coaches section leads. Photos come
+   from the PHOTOS bundle — drop image files in the repo's photos/ folder named
+   by the card's photo key and rebuild; until then a crest placeholder shows. */
+const TEAM_PAGE = {
+  coaches: [
+    { name: 'Mike Cavanaugh', role: 'Head Coach', photo: 'cavanaugh', fields: {} },
+  ],
+  players: [
+    { name: 'C1C Jack P. Tierney', role: 'Team Captain', badge: 'TEAM CAPTAIN', photo: 'tierney', fields: {
+      'Position': 'Center Back',
+      'Hometown': 'Iowa City, Iowa',
+      'Major': 'Systems Engineering',
+      'Intended Career Field': 'Pilot',
+    } },
+  ],
+};
+function bbCard(p) {
+  const ph = el('div', { cls: 'ph' });
+  const photo = (typeof PHOTOS !== 'undefined' && PHOTOS && PHOTOS[p.photo]) || null;
+  if (photo) ph.appendChild(el('img', { src: photo, alt: p.name }));
+  else ph.appendChild(el('div', { cls: 'noimg' },
+    el('img', { src: LOGOS.airforce, alt: '' }),
+    el('span', { text: 'PHOTO COMING SOON' })));
+  if (p.badge) ph.appendChild(el('div', { cls: 'badge', text: p.badge }));
+  const frame = el('div', { cls: 'frame' }, ph,
+    el('div', { cls: 'nm', text: p.name }),
+    el('div', { cls: 'role', text: p.role || '' }));
+  const entries = Object.entries(p.fields || {});
+  if (entries.length) {
+    const fields = el('div', { cls: 'fields' });
+    for (const [k, v] of entries)
+      fields.appendChild(el('div', { cls: 'fr' }, el('span', { cls: 'fl', text: k }), el('span', { cls: 'fv', text: v })));
+    frame.appendChild(fields);
+  }
+  return el('div', { cls: 'bbcard' }, frame);
+}
+function renderTeamCards() {
+  const host = $('#team-cards'); host.textContent = '';
+  const sec = (title, list) => {
+    if (!list.length) return;
+    const s = el('div', { cls: 'team-sec' }, el('h2', { text: title }));
+    const g = el('div', { cls: 'bbgrid' + (list.length < 3 ? ' solo' : '') });
+    for (const p of list) g.appendChild(bbCard(p));
+    s.appendChild(g); host.appendChild(s);
+  };
+  sec('Coaches', TEAM_PAGE.coaches);
+  sec('Players', TEAM_PAGE.players);
+}
 
 /* ---------- game lifecycle ---------- */
 function newGameFromForm() {
@@ -310,6 +438,8 @@ function enterLiveMode() {
 }
 function exitLiveMode() {
   $('#setup-card').style.display = 'block';
+  $('#setup-card').classList.remove('collapsed');   // the next thing to do is set up a game
+  $('#setup-arrow').textContent = '▾';
   $('#scoreboard').style.display = 'none';
   $('#live-area').style.display = 'none';
   stopClockTimer();

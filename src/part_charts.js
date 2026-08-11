@@ -483,11 +483,18 @@ $('#btn-season-export').addEventListener('click', () => {
    ================================================================ */
 (function boot() {
   $('#crest').src = LOGOS.airforce;
+  $('#home-crest').src = LOGOS.airforce;
   $('#sb-us-logo').src = LOGOS.airforce;
   $('#g-date').value = new Date().toISOString().slice(0, 10);
-  renderRoster(); renderSetupHint();
+  renderRoster(); renderSetupHint(); applyAdminUI();
   if (game && !game.done) {
     enterLiveMode();   // a running clock keeps counting via its timestamp anchor
-    toast('Resumed the game vs ' + game.info.opponent);
+    if (adminOn) showTab('game');   // mid-game reload lands staff back on the floor
+    else renderHome();              // a locked device resumes through the gate
+    if (adminOn) toast('Resumed the game vs ' + game.info.opponent);
+  } else {
+    renderHome();
   }
+  loadRepoRoster();     // both are best-effort async — offline copies skip them
+  loadRepoGames();
 })();

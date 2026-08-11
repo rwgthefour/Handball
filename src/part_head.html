@@ -33,12 +33,87 @@ header.app{background:linear-gradient(135deg,var(--afa-blue-dk),var(--afa-blue))
 header.app img.crest{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
 header.app .ttl .l1{font-size:18px;font-weight:700;letter-spacing:.06em}
 header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-transform:uppercase}
-nav.tabs{margin-left:auto;display:flex;gap:6px}
-nav.tabs button{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);
-  color:#dfe6f5;padding:9px 18px;border-radius:0;letter-spacing:.08em;font-weight:600;font-size:13px}
-nav.tabs button.on{background:#fff;color:var(--afa-blue);border-color:#fff}
+/* hamburger menu */
+.menu-wrap{margin-left:auto;position:relative}
+#menu-btn{width:48px;height:42px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.28);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer}
+#menu-btn span{display:block;width:22px;height:2.5px;background:#fff;border-radius:1px}
+#menu-btn:hover{background:rgba(255,255,255,.22)}
+.menu{position:absolute;right:0;top:48px;background:#fff;border:1px solid var(--hairline);
+  box-shadow:0 10px 28px rgba(6,14,40,.35);min-width:220px;display:none;z-index:300}
+.menu.open{display:block}
+.menu button{display:block;width:100%;text-align:left;padding:14px 20px;border:none;background:#fff;
+  font-weight:700;letter-spacing:.1em;font-size:13px;color:var(--ink-2);border-left:3px solid transparent}
+.menu button:hover{background:#eef3fc;color:var(--afa-blue)}
+.menu button.on{border-left-color:var(--afa-blue);color:var(--afa-blue);background:#f4f7fd}
 .cui{background:#0d1220;color:#8fa3cc;text-align:center;font-size:10.5px;
   letter-spacing:.18em;padding:3px 8px;text-transform:uppercase}
+
+/* welcome / home */
+.home-hero{text-align:center;padding:52px 16px 24px}
+.home-hero img{width:150px;height:150px;object-fit:contain;filter:drop-shadow(0 5px 16px rgba(0,25,80,.35))}
+.home-hero h1{font-size:clamp(26px,4.5vw,38px);letter-spacing:.08em;color:var(--afa-blue-dk);margin-top:16px}
+.home-hero .sub{letter-spacing:.3em;color:var(--silver);text-transform:uppercase;font-size:12.5px;margin-top:7px}
+.home-hero .wel{max-width:640px;margin:18px auto 0;color:var(--ink-2);font-size:15px;line-height:1.6}
+#home-resume{display:none;width:100%;background:#0d2a66;color:#fff;padding:15px 20px;text-align:left;
+  border:none;border-left:4px solid #c9a227;cursor:pointer;font:inherit;font-weight:700;letter-spacing:.04em;margin-bottom:6px}
+#home-resume:hover{background:#123a8c}
+.home-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;
+  max-width:880px;margin:22px auto 8px;padding:0 16px}
+.home-actions .act{background:var(--card);border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
+  padding:22px 18px;text-align:left;cursor:pointer;font:inherit}
+.home-actions .act:hover{box-shadow:0 8px 22px rgba(8,25,80,.16);border-top-color:#c9a227}
+.act .t{font-weight:800;letter-spacing:.1em;color:var(--afa-blue);font-size:15px}
+.act .d{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
+.home-note{text-align:center;color:var(--ink-mut);font-size:12px;margin:18px 0 8px}
+
+/* ============ ADMIN WALL ============ */
+body:not(.admin) .adminonly{display:none !important}
+.amodal{position:fixed;inset:0;background:rgba(8,14,32,.72);display:none;align-items:center;
+  justify-content:center;z-index:400;padding:18px}
+.amodal.open{display:flex}
+.abox{background:#fff;border-top:4px solid var(--afa-blue);box-shadow:0 18px 48px rgba(0,0,0,.5);
+  padding:22px 24px;max-width:360px;width:100%}
+.abox h3{color:var(--afa-blue);letter-spacing:.16em;font-size:14px;margin-bottom:8px}
+.abox p{font-size:13px;color:var(--ink-2);margin:0 0 12px}
+.abox input{width:100%;border:1px solid var(--steel);padding:11px 12px;font-size:16px}
+.abox .err{color:var(--crit);font-size:12.5px;font-weight:600;min-height:18px;margin-top:6px}
+.abox .acts{display:flex;gap:8px;margin-top:8px}
+.abox .acts .btn{flex:1}
+#menu-admin{border-top:1px solid var(--line);color:var(--ink-mut)}
+
+/* collapsible game setup + roster manager */
+h2.tgl{cursor:pointer;user-select:none}
+h2.tgl:hover{color:var(--afa-blue-lt)}
+#setup-card.collapsed #setup-body{display:none}
+#manage-roster-card.collapsed #mroster-body{display:none}
+
+/* ============ TEAM BASEBALL CARDS ============ */
+.team-sec{max-width:1100px;margin:6px auto 20px}
+.team-sec>h2{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--afa-blue-dk);
+  text-align:center;margin:22px 0 16px;position:relative}
+.team-sec>h2::after{content:'';display:block;width:64px;height:3px;background:#c9a227;margin:8px auto 0}
+.bbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px;justify-items:center}
+.bbgrid.solo{grid-template-columns:repeat(auto-fit,270px);justify-content:center}
+.bbcard{width:100%;max-width:290px;background:linear-gradient(160deg,#00276b,#003594 60%,#00276b);
+  border:1px solid #c9a227;box-shadow:0 8px 24px rgba(6,16,50,.28);padding:10px}
+.bbcard .frame{border:1px solid rgba(255,255,255,.35);padding:8px}
+.bbcard .ph{aspect-ratio:3/4;background:linear-gradient(180deg,#c9d4ea,#8fa3cc);position:relative;overflow:hidden}
+.bbcard .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.bbcard .ph .noimg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.bbcard .ph .noimg img{width:84px;height:84px;object-fit:contain;opacity:.55}
+.bbcard .ph .noimg span{font-size:10px;letter-spacing:.14em;color:#2c3e66;font-weight:700}
+.bbcard .badge{position:absolute;top:10px;left:-32px;transform:rotate(-38deg);background:#c9a227;color:#0d1220;
+  font-size:10px;font-weight:800;letter-spacing:.12em;padding:4px 36px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.bbcard .nm{background:#c9a227;color:#0d1220;text-align:center;font-weight:800;letter-spacing:.06em;
+  padding:8px 6px;font-size:15px;margin-top:8px}
+.bbcard .role{text-align:center;color:#b9c6e8;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  padding:6px 0 2px}
+.bbcard .fields{background:#fff;margin-top:8px;padding:10px 12px}
+.bbcard .fields .fr{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.bbcard .fields .fr:last-child{border-bottom:none}
+.bbcard .fields .fl{color:var(--ink-mut);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:2px}
+.bbcard .fields .fv{color:var(--ink);font-weight:650;text-align:right}
 
 main{max-width:1240px;margin:0 auto;padding:16px}
 section.tab{display:none}
@@ -210,26 +285,93 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 #toast.on{opacity:1}
 
 footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;letter-spacing:.05em}
-@media print{header.app,.sb,nav.tabs,.btn,.pcard .btns,.opp-panel{display:none!important}}
+@media print{header.app,.sb,.menu-wrap,.btn,.pcard .btns,.opp-panel{display:none!important}}
+
+/* ============ MOBILE (most users are on phones) ============ */
+@media (max-width:640px){
+  header.app{padding:8px 12px;gap:10px}
+  header.app img.crest{width:40px;height:40px}
+  header.app .ttl .l1{font-size:14.5px}
+  header.app .ttl .l2{font-size:9px;letter-spacing:.14em}
+  main{padding:10px}
+  .sb{gap:8px;padding:8px 10px}
+  .sb .num{font-size:30px;min-width:40px}
+  .sb .clock{font-size:20px}
+  .sb .tn{max-width:90px;font-size:10px}
+  .sb img.tl,.sb .gen{width:30px;height:30px}
+  .sb .ctl{margin-left:0;width:100%;justify-content:space-between}
+  .sb .ctl .btn{padding:8px 8px;font-size:11px;flex:1;text-align:center}
+  /* 16px inputs stop iOS Safari from zooming the page on focus */
+  .fld input,.fld select,.fld textarea,.gm-pop select,.gm-pop input[type=text],#note-in{font-size:16px}
+  .home-hero{padding:32px 12px 14px}
+  .home-hero img{width:110px;height:110px}
+  .pgrid{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+}
+@media (pointer:coarse){
+  .pcard .btns button{min-height:44px}
+  .opp-panel .btns button{padding:12px 14px;min-height:44px}
+  .menu button{padding:16px 20px}
+  .elog .evx,.gm-list button{padding:6px 10px}
+}
 </style>
 </head>
 <body>
-<div class="cui">United States Air Force Academy · Team Handball · Internal statistics tool</div>
 <header class="app">
   <img class="crest" id="crest" alt="U.S. Air Force Academy crest">
   <div class="ttl">
     <div class="l1">AIR FORCE TEAM HANDBALL</div>
-    <div class="l2">United States Air Force Academy · Stat Tracker</div>
+    <div class="l2">United States Air Force Academy</div>
   </div>
-  <nav class="tabs">
-    <button data-tab="game" class="on">GAME</button>
-    <button data-tab="roster">ROSTER</button>
-    <button data-tab="season">SEASON</button>
-  </nav>
+  <div class="menu-wrap">
+    <button id="menu-btn" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="menu" class="menu">
+      <button data-tab="home" class="on">HOME</button>
+      <button data-tab="roster">TEAM</button>
+      <button data-tab="season">SEASON</button>
+      <button data-tab="game">GAME 🔒</button>
+      <button id="menu-admin">ADMIN SIGN IN</button>
+    </nav>
+  </div>
 </header>
 
+<!-- ================= HOME / WELCOME ================= -->
+<section class="tab on" id="tab-home">
+  <div class="home-hero">
+    <img id="home-crest" alt="U.S. Air Force Academy crest">
+    <h1>AIR FORCE TEAM HANDBALL</h1>
+    <div class="sub">United States Air Force Academy</div>
+    <div class="wel">Welcome to the home of Air Force team handball stats. Track every game live,
+      build the season picture, and share it all as Excel — right from this page, even with no
+      internet at the gym. Open the ☰ menu anytime to jump between pages.</div>
+  </div>
+  <div style="max-width:880px;margin:0 auto;padding:0 16px">
+    <button id="home-resume"></button>
+  </div>
+  <div class="home-actions">
+    <button class="act" data-goto="game">
+      <div class="t">TRACK A GAME ▸</div>
+      <div class="d">Set up the matchup, then log goals, shots, saves, 7-meters and cards with one
+        tap per play — plus a tap-on-goal shot map. The Excel workbook downloads at the final whistle.</div>
+    </button>
+    <button class="act" data-goto="roster">
+      <div class="t">MEET THE TEAM ▸</div>
+      <div class="d">The coaches and the cadets of Air Force team handball — positions, hometowns,
+        majors and intended career fields, card by card.</div>
+    </button>
+    <button class="act" data-goto="season">
+      <div class="t">SEASON ▸</div>
+      <div class="d">Drop in exported game files from any computer for the season record, sortable
+        player and keeper totals, and charts — then export the season report.</div>
+    </button>
+  </div>
+  <div class="home-note">Every game exports a full Excel workbook · nothing uploads anywhere — your data stays with you</div>
+</section>
+
 <!-- ================= GAME TAB ================= -->
-<section class="tab on" id="tab-game">
+<section class="tab" id="tab-game">
   <div class="sb" id="scoreboard" style="display:none">
     <div class="teamside">
       <img class="tl" id="sb-us-logo" alt="Air Force">
@@ -256,7 +398,8 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
   <div style="height:12px"></div>
 
   <div class="card" id="setup-card">
-    <h2>Game setup</h2>
+    <h2 class="tgl" id="setup-toggle">Game setup <span id="setup-arrow">▾</span></h2>
+    <div id="setup-body">
     <details class="help"><summary>How this works</summary><div class="bd">
       Fill in the game details and press <b>START GAME</b>. Log every action with one tap on a
       player's card — the score, box score and play-by-play build themselves. Opponent shots and
@@ -284,6 +427,7 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
       <button class="btn pri" id="btn-start">START GAME</button>
     </div>
     <div class="hint" id="setup-hint"></div>
+    </div>
   </div>
 
   <div id="live-area" style="display:none">
@@ -379,14 +523,18 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
   </div>
 </section>
 
-<!-- ================= ROSTER TAB ================= -->
+<!-- ================= ROSTER / TEAM TAB ================= -->
 <section class="tab" id="tab-roster">
-  <div class="card">
-    <h2>Roster</h2>
+  <div id="team-cards"></div>
+  <div class="card collapsed adminonly" id="manage-roster-card">
+    <h2 class="tgl" id="mroster-toggle">Stat roster — jersey numbers &amp; dressed list <span id="mroster-arrow">▸</span></h2>
+    <div id="mroster-body">
     <details class="help"><summary>How this works</summary><div class="bd">
-      Add every cadet once — number, name, position (<b>GK</b> marks goalkeepers). The roster is
-      saved in this browser and reused every game. Untick <b>Dressed</b> for anyone not playing
-      today and they stay off the game screen. Edits here are live; click a cell to change it.
+      This list is what the GAME page tracks against. Add every cadet once — number, name, position
+      (<b>GK</b> marks goalkeepers). It is saved in this browser and reused every game; if the team
+      repo carries a roster file it loads automatically the first time. Untick <b>Dressed</b> for
+      anyone not playing today and they stay off the game screen. Edits here are live; click a cell
+      to change it.
     </div></details>
     <div class="row" style="margin-bottom:12px">
       <div class="fld"><label>#</label><input type="number" id="r-num" min="1" max="99" style="width:70px"></div>
@@ -403,6 +551,7 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
       <button class="btn danger" id="btn-clear-roster">CLEAR ROSTER</button>
     </div>
     <div class="tblwrap"><table class="stats rtable" id="roster-table"></table></div>
+    </div>
   </div>
 </section>
 
@@ -416,15 +565,16 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
       workbooks back and merges everything, skipping duplicates by game ID. <b>EXPORT SEASON REPORT</b>
       writes one Excel workbook with the season summary, player totals, goalkeeper totals and game log.
     </div></details>
-    <div class="dropzone" id="dropzone">
+    <div class="dropzone adminonly" id="dropzone">
       <b>Drop game .xlsx files here</b> or
       <label style="color:var(--afa-blue);text-decoration:underline;cursor:pointer">browse
         <input type="file" id="file-in" accept=".xlsx,.xls" multiple style="display:none"></label>
-      <div class="small muted" style="margin-top:4px" id="import-status">No files imported yet — showing games saved in this browser.</div>
+      <div class="small muted" style="margin-top:4px" id="import-status">No files imported yet.</div>
+      <div class="small" style="margin-top:2px;color:var(--afa-blue);font-weight:600" id="repo-status"></div>
     </div>
     <div class="row" style="margin-top:12px">
       <button class="btn pri" id="btn-season-export">⬇ EXPORT SEASON REPORT (.xlsx)</button>
-      <button class="btn" id="btn-clear-imports">CLEAR IMPORTED FILES</button>
+      <button class="btn adminonly" id="btn-clear-imports">CLEAR IMPORTED FILES</button>
       <div class="spacer"></div>
       <span class="muted small" id="season-count"></span>
     </div>
@@ -445,12 +595,26 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
       <h2>Goalkeeper season totals</h2>
       <div class="tblwrap" id="season-gk"></div>
     </div>
-    <div class="card" id="storage-card">
+    <div class="card adminonly" id="storage-card">
       <h2>Games saved in this browser</h2>
       <div class="tblwrap" id="storage-list"></div>
     </div>
   </div>
 </section>
+
+<div class="amodal" id="admin-modal">
+  <div class="abox">
+    <h3>ADMIN ACCESS</h3>
+    <p>Game tracking and data management are for team staff. Enter the admin password to unlock
+      this device.</p>
+    <input type="password" id="admin-pw" placeholder="Password" autocomplete="off">
+    <div class="err" id="admin-err"></div>
+    <div class="acts">
+      <button class="btn pri" id="admin-go">UNLOCK</button>
+      <button class="btn" id="admin-cancel">CANCEL</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast"></div>
 <div class="viz-tip" id="viz-tip"></div>

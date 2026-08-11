@@ -6,10 +6,13 @@ const fs = require('fs');
 const SCRATCH = __dirname;
 const XLSX = require(path.join(SCRATCH, 'xlsx.full.min.js'));
 const REPO = '/Users/willgarrett/Desktop/ApolloDagger';
+const REPO_HB = '/Users/willgarrett/Desktop/Handball';
 const { chromium } = require(path.join(REPO, 'node_modules', 'playwright'));
 const apolloChrome = require(path.join(REPO, 'apollo_chrome.js'));
-const PAGE = 'file://' + path.join(REPO, 'Handball', 'USAFA_Handball_Stats.html');
+const { spawn } = require('child_process');
+const PAGE = 'file://' + path.join(REPO_HB, 'index.html');
 const LEGACY = '/Users/willgarrett/Downloads/Handball Stats.xlsx';
+const ADMIN_PW = 'handball2027';
 
 let pass = 0, fail = 0;
 function ok(name, cond, detail) {
@@ -17,6 +20,17 @@ function ok(name, cond, detail) {
   else { fail++; console.log('  ✗ ' + name + (detail !== undefined ? '   [' + String(detail) + ']' : '')); }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const goTab = async (p, name) => { await p.click('#menu-btn'); await p.click('#menu button[data-tab="' + name + '"]'); };
+const unlockAdmin = async p => {
+  await p.click('#menu-btn'); await p.click('#menu-admin');
+  await p.fill('#admin-pw', ADMIN_PW); await p.click('#admin-go');
+  await p.waitForFunction(() => document.body.classList.contains('admin'));
+};
+const openRosterMgmt = async p => {
+  await goTab(p, 'roster');
+  if (await p.$eval('#manage-roster-card', e => e.classList.contains('collapsed'))) await p.click('#mroster-toggle');
+};
+const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: apolloChrome() });
@@ -32,12 +46,45 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await page.goto(PAGE);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.waitForSelector('#btn-start');
+  await page.waitForSelector('#menu-btn');
   ok('page loads with a title', (await page.title()).includes('Handball'));
   ok('AF crest image decodes', await page.evaluate(() => document.getElementById('crest').naturalWidth > 0));
 
-  console.log('— roster —');
-  await page.click('nav.tabs button[data-tab="roster"]');
+  console.log('— welcome page, menu, admin wall —');
+  ok('opens on the welcome page', await page.$eval('#tab-home', e => e.classList.contains('on')));
+  ok('welcome crest decodes', await page.evaluate(() => document.getElementById('home-crest').naturalWidth > 0));
+  ok('old top strip is gone', await page.$$eval('body > .cui', n => n.length) === 0);
+  ok('menu closed until ☰ pressed', await page.$eval('#menu', m => !m.classList.contains('open')));
+  await page.click('#menu-btn');
+  ok('☰ opens the menu', await page.$eval('#menu', m => m.classList.contains('open')));
+  ok('GAME shows locked for visitors', await page.$eval('#menu button[data-tab="game"]', b => b.textContent.includes('🔒')));
+  ok('roster manager hidden while locked', await page.$eval('#manage-roster-card', e => getComputedStyle(e).display) === 'none');
+  await page.click('#menu button[data-tab="game"]');
+  ok('locked GAME opens the admin prompt instead', await page.$eval('#admin-modal', m => m.classList.contains('open')));
+  await page.fill('#admin-pw', 'wrongpass'); await page.click('#admin-go');
+  ok('wrong password refused', await page.$eval('#admin-err', e => e.textContent) === 'Wrong password.'
+    && await page.$eval('#admin-modal', m => m.classList.contains('open')));
+  await page.fill('#admin-pw', ADMIN_PW); await page.click('#admin-go');
+  ok('right password unlocks and continues to GAME', await page.$eval('#tab-game', e => e.classList.contains('on'))
+    && await page.evaluate(() => document.body.classList.contains('admin')));
+  ok('menu GAME loses the lock once admin', await page.$eval('#menu button[data-tab="game"]', b => !b.textContent.includes('🔒')));
+  await page.click('#setup-toggle');
+  ok('game setup collapses', await page.$eval('#setup-body', e => getComputedStyle(e).display) === 'none');
+  await page.click('#setup-toggle');
+  ok('…and expands again', await page.$eval('#setup-body', e => getComputedStyle(e).display) !== 'none');
+  await goTab(page, 'home');
+  await page.click('.home-actions .act[data-goto="game"]');
+  ok('welcome action card jumps straight to GAME when admin', await page.$eval('#tab-game', e => e.classList.contains('on')));
+
+  console.log('— team cards + roster —');
+  await goTab(page, 'roster');
+  const cardsTxt = await page.$eval('#team-cards', e => e.textContent);
+  ok('Coaches section leads with Coach Cavanaugh', /Coaches/.test(cardsTxt) && /Mike Cavanaugh/.test(cardsTxt) && /Head Coach/.test(cardsTxt));
+  ok('captain card carries the standard format', /C1C Jack P\. Tierney/.test(cardsTxt) && /Center Back/.test(cardsTxt)
+    && /Iowa City, Iowa/.test(cardsTxt) && /Systems Engineering/.test(cardsTxt) && /Pilot/.test(cardsTxt));
+  ok('captain ribbon shows', /TEAM CAPTAIN/.test(cardsTxt));
+  ok('photo placeholders render until portraits are dropped in', await page.$$eval('#team-cards .ph .noimg', n => n.length) === 2);
+  await openRosterMgmt(page);
   await page.click('#btn-demo-roster');
   ok('sample roster renders 12 players', await page.$$eval('#roster-table tr', r => r.length) === 13);
   // add a player through the form
@@ -46,7 +93,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('form-added player appears', await page.$$eval('#roster-table tr', r => r.length) === 14);
 
   console.log('— start game —');
-  await page.click('nav.tabs button[data-tab="game"]');
+  await goTab(page, 'game');
   await page.fill('#g-opp', 'Army');
   await page.fill('#g-loc', 'Cadet West Gym');
   await page.click('#btn-start');
@@ -134,7 +181,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('missed marker drawn gray', await page.$$eval('#gm-marks circle', c => c.some(x => x.getAttribute('fill') === '#c8cbd2')));
 
   console.log('— mid-game renumber keeps stats (pid keying) —');
-  await page.click('nav.tabs button[data-tab="roster"]');
+  await openRosterMgmt(page);
   await page.evaluate(() => {
     for (const r of document.querySelectorAll('#roster-table tr')) {
       const name = r.querySelector('td:nth-child(2) input');
@@ -145,7 +192,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       }
     }
   });
-  await page.click('nav.tabs button[data-tab="game"]');
+  await goTab(page, 'game');
   ok('Jack\'s card now reads #17', !!(await page.$('.pcard[data-num="17"]')));
   const jr2 = await page.$$eval('#livebox tr', rows => {
     for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
@@ -199,7 +246,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('back on setup, game archived', await page.evaluate(() => JSON.parse(localStorage.getItem('afahb.games.v1') || '[]').length) === 1);
 
   console.log('— season: local + legacy import —');
-  await page.click('nav.tabs button[data-tab="season"]');
+  await goTab(page, 'season');
   await sleep(200);
   const tiles1 = await page.$eval('#tiles', e => e.textContent);
   ok('tiles show a 1–0 record', /1–0/.test(tiles1), tiles1.slice(0, 80));
@@ -259,7 +306,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await p2.goto(PAGE);
   await p2.evaluate(() => localStorage.clear());
   await p2.reload();
-  await p2.click('nav.tabs button[data-tab="season"]');
+  await goTab(p2, 'season');
+  ok('visitor sees the dashboard but no import or storage controls',
+    await p2.$eval('#dropzone', e => getComputedStyle(e).display) === 'none'
+    && await p2.$eval('#storage-card', e => getComputedStyle(e).display) === 'none'
+    && await p2.$eval('#tiles', e => getComputedStyle(e).display) !== 'none');
+  await unlockAdmin(p2);
+  ok('unlock reveals the import dropzone', await p2.$eval('#dropzone', e => getComputedStyle(e).display) !== 'none');
   await p2.setInputFiles('#file-in', liveFile);
   await sleep(700);
   const st3 = await p2.$eval('#import-status', e => e.textContent);
@@ -281,19 +334,31 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await p3.goto(PAGE);
   await p3.evaluate(() => localStorage.clear());
   await p3.reload();
-  await p3.click('nav.tabs button[data-tab="roster"]');
+  await unlockAdmin(p3);
+  await openRosterMgmt(p3);
   await p3.click('#btn-demo-roster');
-  await p3.click('nav.tabs button[data-tab="game"]');
+  await goTab(p3, 'game');
   await p3.fill('#g-opp', 'Navy');
   await p3.click('#btn-start');
   await p3.click('.pcard[data-num="7"] button[data-ev="goal"]');
   await p3.reload();
   await p3.waitForSelector('#scoreboard', { state: 'visible' });
   ok('reload mid-game resumes with the score intact', await p3.$eval('#sb-us', e => e.textContent) === '1');
+  ok('mid-game reload lands staff straight on the GAME page', await p3.$eval('#tab-game', e => e.classList.contains('on')));
   ok('Navy logo resolves on the scoreboard', await p3.evaluate(() => {
     const img = document.querySelector('#sb-opp-logo-slot img');
     return !!img && img.naturalWidth > 0;
   }));
+  await goTab(p3, 'home');
+  ok('welcome page offers RESUME LIVE GAME', await p3.$eval('#home-resume', e => getComputedStyle(e).display) !== 'none'
+    && /RESUME LIVE GAME/.test(await p3.$eval('#home-resume', e => e.textContent)));
+  await p3.click('#home-resume');
+  ok('resume returns to the live floor', await p3.$eval('#tab-game', e => e.classList.contains('on')));
+  await p3.click('#menu-btn'); await p3.click('#menu-admin');
+  ok('sign-out locks the device again', await p3.evaluate(() => !document.body.classList.contains('admin')));
+  await p3.click('#home-resume');
+  ok('resuming while locked asks for the password', await p3.$eval('#admin-modal', m => m.classList.contains('open')));
+  await p3.click('#admin-cancel');
 
   console.log('— guards refuse dishonest states —');
   const ctx4 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
@@ -301,17 +366,68 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await p4.goto(PAGE);
   await p4.evaluate(() => localStorage.clear());
   await p4.reload();
-  await p4.click('nav.tabs button[data-tab="roster"]');
+  await unlockAdmin(p4);
+  await openRosterMgmt(p4);
   await p4.click('#btn-demo-roster');
   await p4.fill('#r-name', 'Walk-on Nonum');            // no jersey number
   await p4.click('#btn-addplayer');
-  await p4.click('nav.tabs button[data-tab="game"]');
+  await goTab(p4, 'game');
   await p4.fill('#g-opp', 'Navy');
   await p4.click('#btn-start');
   const hint = await p4.$eval('#setup-hint', e => e.textContent);
   ok('numberless dressed player blocks the start, naming them',
     /Walk-on Nonum/.test(hint) && await p4.$eval('#scoreboard', e => getComputedStyle(e).display) === 'none', hint);
-  ok('no page errors anywhere', pageErrors.length === 0 && p2err.length === 0, pageErrors.concat(p2err).join(' | '));
+  console.log('— hosted from the repo: data auto-loads for visitors —');
+  // the runner starts `python3 -m http.server 8123 --bind 127.0.0.1` in the repo
+  // root before this probe and kills it after (spawning it from inside Node is
+  // blocked in some sandboxes; an absent server fails loudly right here)
+  const ctx5 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+  const p5 = await ctx5.newPage();
+  const p5err = []; p5.on('pageerror', e => p5err.push(String(e)));
+  await p5.goto('http://127.0.0.1:8123/');
+  await p5.evaluate(() => localStorage.clear());
+  await p5.reload();
+  await goTab(p5, 'season');
+  await p5.waitForFunction(() => /game/.test(document.getElementById('repo-status').textContent), undefined, { timeout: 20000 }).catch(() => {});
+  const rs = await p5.$eval('#repo-status', e => e.textContent);
+  ok('committed game files load automatically for a visitor', /4 game/.test(rs), rs);
+  ok('tiles show the legacy record 2–2 with zero clicks', /2–2/.test(await p5.$eval('#tiles', e => e.textContent)),
+    (await p5.$eval('#tiles', e => e.textContent)).slice(0, 60));
+  ok('game log carries the four legacy games', await p5.$$eval('#gamelog tr', r => r.length) === 5);
+  await p5.waitForFunction(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length > 0, undefined, { timeout: 10000 }).catch(() => {});
+  ok('the committed team roster auto-loads (12 names)',
+    await p5.evaluate(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length) === 12);
+  ok('hosted visitor still cannot see import controls', await p5.$eval('#dropzone', e => getComputedStyle(e).display) === 'none');
+  await goTab(p5, 'roster');
+  ok('visitors get the team cards', /Tierney/.test(await p5.$eval('#team-cards', e => e.textContent)));
+
+  console.log('— mobile (375×812, touch) —');
+  const ctx6 = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+  const p6 = await ctx6.newPage();
+  const p6err = []; p6.on('pageerror', e => p6err.push(String(e)));
+  p6.on('dialog', d => d.accept());
+  await p6.goto(PAGE);
+  await p6.evaluate(() => localStorage.clear());
+  await p6.reload();
+  ok('phone: welcome page has no sideways scroll', await noOverflow(p6));
+  await p6.screenshot({ path: path.join(SCRATCH, 'shot_mobile_home.png'), fullPage: true });
+  await unlockAdmin(p6);
+  await openRosterMgmt(p6);
+  await p6.click('#btn-demo-roster');
+  ok('phone: team page has no sideways scroll', await noOverflow(p6));
+  await goTab(p6, 'game');
+  await p6.fill('#g-opp', 'Navy');
+  await p6.click('#btn-start');
+  await p6.waitForSelector('#scoreboard', { state: 'visible' });
+  await p6.click('.pcard[data-num="7"] button[data-ev="goal"]');
+  ok('phone: tap logs a goal', await p6.$eval('#sb-us', e => e.textContent) === '1');
+  ok('phone: live game has no sideways scroll', await noOverflow(p6));
+  await p6.screenshot({ path: path.join(SCRATCH, 'shot_mobile_game.png'), fullPage: true });
+  await goTab(p6, 'season');
+  ok('phone: season has no sideways scroll', await noOverflow(p6));
+
+  ok('no page errors anywhere', pageErrors.length === 0 && p2err.length === 0 && p5err.length === 0 && p6err.length === 0,
+    pageErrors.concat(p2err, p5err, p6err).join(' | '));
   await browser.close();
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);
