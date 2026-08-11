@@ -484,6 +484,8 @@ $('#btn-season-export').addEventListener('click', () => {
 (function boot() {
   $('#crest').src = LOGOS.airforce;
   $('#home-crest').src = LOGOS.airforce;
+  if (LOGOS.teamphoto) $('#home-team-photo').src = LOGOS.teamphoto;
+  else $('#home-team-photo').style.display = 'none';
   $('#sb-us-logo').src = LOGOS.airforce;
   $('#g-date').value = new Date().toISOString().slice(0, 10);
   renderRoster(); renderSetupHint(); applyAdminUI();
@@ -495,7 +497,8 @@ $('#btn-season-export').addEventListener('click', () => {
   } else {
     renderHome();
   }
-  loadRepoRoster();     // all three are best-effort async — offline copies skip them
+  loadRepoRoster();     // all of these are best-effort async — offline copies skip them
   loadRepoGames();
   loadRepoTeam();
+  loadRepoGallery();
 })();

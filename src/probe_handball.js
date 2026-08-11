@@ -29,6 +29,9 @@ if (process.argv[2] === '--prep-hosted') {
   fs.cpSync(path.join(REPO_HB, 'games'), path.join(stage, 'games'), { recursive: true });
   fs.copyFileSync(path.join(REPO_HB, 'data', 'roster.xlsx'), path.join(stage, 'data', 'roster.xlsx'));
   fs.writeFileSync(path.join(stage, 'data', 'team.json'), JSON.stringify(TEST_TEAM));
+  const PX = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
+  fs.writeFileSync(path.join(stage, 'data', 'gallery.json'),
+    JSON.stringify({ v: 1, photos: [{ id: 'gh', cap: 'Hosted Gallery Check', src: PX }] }));
   console.log('hosted staging ready:', stage);
   process.exit(0);
 }
@@ -74,6 +77,12 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   ok('welcome crest decodes', await page.evaluate(() => document.getElementById('home-crest').naturalWidth > 0));
   ok('old top strip is gone', await page.$$eval('body > .cui', n => n.length) === 0);
   ok('menu closed until ☰ pressed', await page.$eval('#menu', m => !m.classList.contains('open')));
+  ok('DONATE link in the menu opens the USAFA giving page in a new tab', await page.$eval('#menu-donate', a =>
+    a.href === 'https://give.usafa.org/campaigns/43504/donations/new?a=8618228' && a.target === '_blank' && a.rel.includes('noopener')));
+  ok('team photo renders on the landing page', await page.evaluate(() => {
+    const i = document.getElementById('home-team-photo');
+    return !!i && i.naturalWidth === 1200 && getComputedStyle(i).display !== 'none';
+  }));
   await page.click('#menu-btn');
   ok('☰ opens the menu', await page.$eval('#menu', m => m.classList.contains('open')));
   ok('GAME shows locked for visitors', await page.$eval('#menu button[data-tab="game"]', b => b.textContent.includes('🔒')));
@@ -117,6 +126,7 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   console.log('— team card manager (admin builds cards in the browser) —');
   ok('manager visible for admin', await page.$eval('#team-mgr-card', e => getComputedStyle(e).display) !== 'none');
   await page.click('#tm-add-player');
+  await page.selectOption('#tm-sec', 'cic');            // the new CIC section
   await page.fill('#tm-name', 'C4C Test Falcon');
   await page.fill('#tm-role', 'Wing');
   await page.fill('#tm-pos', 'Left Wing');
@@ -128,6 +138,8 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await page.click('#tm-save');
   const tc2 = await page.$eval('#team-cards', e => e.textContent);
   ok('new card renders with the standard fields', /C4C Test Falcon/.test(tc2) && /Reno, Nevada/.test(tc2) && /Combat Systems Officer/.test(tc2), tc2.slice(0, 80));
+  const secOrder = await page.$$eval('#team-cards .team-sec > h2', h => h.map(x => x.textContent));
+  ok('sections read Coaches → Team Captain → CIC', JSON.stringify(secOrder) === JSON.stringify(['Coaches', 'Team Captain', 'CIC']), secOrder.join(' | '));
   ok('uploaded photo is card-cropped and replaces the placeholder', await page.evaluate(() => {
     const card = Array.from(document.querySelectorAll('#team-cards .bbcard')).find(c => c.textContent.includes('C4C Test Falcon'));
     const img = card && card.querySelector('.ph > img');
@@ -158,6 +170,40 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await page.click('#tm-reset');
   await sleep(150);
   ok('discard local edits returns to the starter cards', /Tierney/.test(await page.$eval('#team-cards', e => e.textContent)));
+
+  console.log('— gallery (admin uploads, everyone views) —');
+  await goTab(page, 'gallery');
+  ok('gallery opens on the starter team photo', await page.$$eval('#galgrid .gph', t => t.length) === 1);
+  ok('gallery manager visible for admin', await page.$eval('#gal-mgr-card', e => getComputedStyle(e).display) !== 'none');
+  await page.setInputFiles('#gal-add', [path.join(REPO, 'Logos', 'AirForce.png'), path.join(REPO, 'Logos', '2SWS.png')]);
+  await page.waitForFunction(() => document.querySelectorAll('#galgrid .gph').length === 3, undefined, { timeout: 10000 });
+  ok('two uploads join the grid (3 photos)', true);
+  await page.$$eval('#gal-list .glrow input', ins => { const i = ins[1]; i.value = 'Season opener'; i.dispatchEvent(new Event('change')); });
+  await sleep(150);
+  ok('caption saves and renders on the tile', /Season opener/.test(await page.$eval('#galgrid', e => e.textContent)));
+  await page.click('#galgrid .gph');
+  ok('tapping a photo opens the lightbox', await page.$eval('#lightbox', e => e.classList.contains('open'))
+    && await page.$eval('#lb-img', i => i.naturalWidth > 0));
+  await page.click('#lb-close');
+  ok('lightbox closes', await page.$eval('#lightbox', e => !e.classList.contains('open')));
+  const dlG = downloads.length;
+  await page.click('#gal-download');
+  await sleep(400);
+  ok('gallery.json downloads for publishing', downloads.length === dlG + 1);
+  const galFile = path.join(SCRATCH, 'out_gallery.json');
+  await downloads[downloads.length - 1].saveAs(galFile);
+  const gj = JSON.parse(fs.readFileSync(galFile, 'utf8'));
+  ok('gallery.json carries all three photos (uploads as data URIs)',
+    gj.photos.length === 3 && gj.photos.filter(p => p.src.startsWith('data:image')).length >= 2);
+  await page.$$eval('#gal-list .glrow', rows => {
+    const r = rows[rows.length - 1];
+    Array.from(r.querySelectorAll('button')).find(x => x.textContent === '✕').click();
+  });
+  await sleep(150);
+  ok('photo deletes from the gallery', await page.$$eval('#galgrid .gph', t => t.length) === 2);
+  await page.click('#gal-reset');
+  await sleep(150);
+  ok('discard returns the gallery to the starter photo', await page.$$eval('#galgrid .gph', t => t.length) === 1);
 
   await openRosterMgmt(page);
   await page.click('#btn-demo-roster');
@@ -477,6 +523,9 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   const hostedCards = await p5.$eval('#team-cards', e => e.textContent);
   ok('published team.json drives the cards for every visitor', /C2C Hosted Check/.test(hostedCards) && /Denver, Colorado/.test(hostedCards), hostedCards.slice(0, 80));
   ok('published cards replace the starter pair (no merge ghosts)', !/Tierney/.test(hostedCards));
+  await goTab(p5, 'gallery');
+  ok('published gallery renders for visitors', /Hosted Gallery Check/.test(await p5.$eval('#galgrid', e => e.textContent))
+    && await p5.$$eval('#galgrid .gph img', im => im.length === 1));
 
   console.log('— mobile (375×812, touch) —');
   const ctx6 = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
@@ -501,6 +550,8 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   ok('phone: tap logs a goal', await p6.$eval('#sb-us', e => e.textContent) === '1');
   ok('phone: live game has no sideways scroll', await noOverflow(p6));
   await p6.screenshot({ path: path.join(SCRATCH, 'shot_mobile_game.png'), fullPage: true });
+  await goTab(p6, 'gallery');
+  ok('phone: gallery has no sideways scroll', await noOverflow(p6));
   await goTab(p6, 'season');
   ok('phone: season has no sideways scroll', await noOverflow(p6));
 

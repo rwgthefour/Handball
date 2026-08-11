@@ -42,10 +42,12 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .menu{position:absolute;right:0;top:48px;background:#fff;border:1px solid var(--hairline);
   box-shadow:0 10px 28px rgba(6,14,40,.35);min-width:220px;display:none;z-index:300}
 .menu.open{display:block}
-.menu button{display:block;width:100%;text-align:left;padding:14px 20px;border:none;background:#fff;
-  font-weight:700;letter-spacing:.1em;font-size:13px;color:var(--ink-2);border-left:3px solid transparent}
-.menu button:hover{background:#eef3fc;color:var(--afa-blue)}
+.menu button,.menu a{display:block;width:100%;text-align:left;padding:14px 20px;border:none;background:#fff;
+  font-weight:700;letter-spacing:.1em;font-size:13px;color:var(--ink-2);border-left:3px solid transparent;
+  text-decoration:none;box-sizing:border-box}
+.menu button:hover,.menu a:hover{background:#eef3fc;color:var(--afa-blue)}
 .menu button.on{border-left-color:var(--afa-blue);color:var(--afa-blue);background:#f4f7fd}
+.menu a#menu-donate{color:#8a6502}
 .cui{background:#0d1220;color:#8fa3cc;text-align:center;font-size:10.5px;
   letter-spacing:.18em;padding:3px 8px;text-transform:uppercase}
 
@@ -65,6 +67,9 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .home-actions .act:hover{box-shadow:0 8px 22px rgba(8,25,80,.16);border-top-color:#c9a227}
 .act .t{font-weight:800;letter-spacing:.1em;color:var(--afa-blue);font-size:15px}
 .act .d{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
+.home-photo{max-width:880px;margin:24px auto 20px;padding:0 16px}
+.home-photo img{width:100%;display:block;border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
+  box-shadow:0 12px 32px rgba(8,25,80,.20)}
 .home-actions{padding-bottom:26px}
 
 /* ============ ADMIN WALL ============ */
@@ -125,6 +130,25 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 #tm-list .tmrow button:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
 #tm-editor{border-top:2px solid var(--afa-blue);margin-top:12px;padding-top:12px}
 #tm-photo-prev{width:96px;height:128px;object-fit:cover;border:1px solid var(--steel);background:#eef1f6;display:block}
+
+/* ============ GALLERY ============ */
+.galgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;max-width:1100px;margin:0 auto;padding:0 4px}
+.galgrid .gph{cursor:pointer;background:#fff;border:1px solid var(--hairline);padding:7px;box-shadow:0 2px 8px rgba(10,20,60,.08)}
+.galgrid .gph:hover{box-shadow:0 8px 22px rgba(8,25,80,.18)}
+.galgrid .gph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.galgrid .gph .cap{font-size:12px;color:var(--ink-2);padding:7px 2px 1px;text-align:center;min-height:14px}
+#lightbox{position:fixed;inset:0;background:rgba(5,10,25,.92);display:none;align-items:center;justify-content:center;
+  z-index:500;flex-direction:column;padding:20px}
+#lightbox.open{display:flex}
+#lightbox img{max-width:94vw;max-height:80vh;object-fit:contain;border:2px solid #fff;background:#000}
+#lightbox .cap{color:#dfe6f5;margin-top:12px;font-size:14px;text-align:center;max-width:90vw}
+#lightbox .x{position:absolute;top:12px;right:14px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;padding:6px 10px}
+#gal-list{margin-top:12px}
+#gal-list .glrow{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#gal-list .glrow img{width:76px;height:57px;object-fit:cover;border:1px solid var(--steel);flex:none}
+#gal-list .glrow input{flex:1;min-width:150px;border:1px solid var(--steel);padding:7px 9px}
+#gal-list .glrow button{border:1px solid var(--steel);background:#fff;padding:5px 10px;font-size:12px;cursor:pointer}
+#gal-list .glrow button:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
 
 main{max-width:1240px;margin:0 auto;padding:16px}
 section.tab{display:none}
@@ -341,6 +365,9 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       <button data-tab="home" class="on">HOME</button>
       <button data-tab="roster">TEAM</button>
       <button data-tab="season">SEASON</button>
+      <button data-tab="gallery">GALLERY</button>
+      <a id="menu-donate" href="https://give.usafa.org/campaigns/43504/donations/new?a=8618228"
+         target="_blank" rel="noopener">DONATE ♥</a>
       <button data-tab="game">GAME 🔒</button>
       <button id="menu-admin">ADMIN SIGN IN</button>
     </nav>
@@ -357,6 +384,7 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       build the season picture, and share it all as Excel — right from this page, even with no
       internet at the gym. Open the ☰ menu anytime to jump between pages.</div>
   </div>
+  <div class="home-photo"><img id="home-team-photo" alt="Air Force team handball team photo"></div>
   <div style="max-width:880px;margin:0 auto;padding:0 16px">
     <button id="home-resume"></button>
   </div>
@@ -558,7 +586,8 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
     <div id="tm-editor" style="display:none">
       <div class="row">
         <div class="fld"><label>Section</label>
-          <select id="tm-sec"><option value="coach">Coach</option><option value="player">Player</option></select></div>
+          <select id="tm-sec"><option value="coach">Coach</option><option value="captain">Team Captain</option>
+            <option value="cic">CIC</option><option value="player">Player</option></select></div>
         <div class="fld"><label>Title / name</label><input id="tm-name" placeholder="C1C First M. Last" style="width:230px"></div>
         <div class="fld"><label>Role line (optional)</label><input id="tm-role" placeholder="Team Captain · Head Coach…" style="width:190px"></div>
         <label class="small" style="display:flex;align-items:center;gap:6px;font-weight:600">
@@ -610,6 +639,33 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   </div>
 </section>
 
+<!-- ================= GALLERY TAB ================= -->
+<section class="tab" id="tab-gallery">
+  <div class="team-sec"><h2>Gallery</h2></div>
+  <div class="galgrid" id="galgrid"></div>
+  <div class="muted small" id="gal-empty" style="text-align:center;padding:34px 10px;display:none">
+    No photos yet — check back soon.</div>
+
+  <div class="card adminonly" id="gal-mgr-card" style="margin-top:20px">
+    <h2>Gallery manager</h2>
+    <details class="help"><summary>How publishing works</summary><div class="bd">
+      Add photos straight from your phone or computer — they are resized in the browser and show on
+      <b>this device</b> immediately. Give each one a caption if you like, drag order with the
+      arrows. To publish for the whole team: <b>DOWNLOAD gallery.json</b>, then on github.com open
+      the repo's <b>data</b> folder → <b>Add file → Upload files</b> → drop it in → Commit.
+    </div></details>
+    <div class="row">
+      <label class="btn pri">＋ ADD PHOTOS
+        <input type="file" id="gal-add" accept="image/*" multiple style="display:none"></label>
+      <div class="spacer"></div>
+      <button class="btn pri" id="gal-download">⬇ DOWNLOAD gallery.json TO PUBLISH</button>
+      <button class="btn" id="gal-load-published">LOAD PUBLISHED</button>
+      <button class="btn danger" id="gal-reset">DISCARD LOCAL EDITS</button>
+    </div>
+    <div id="gal-list"></div>
+  </div>
+</section>
+
 <!-- ================= SEASON TAB ================= -->
 <section class="tab" id="tab-season">
   <div class="card">
@@ -656,6 +712,12 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
     </div>
   </div>
 </section>
+
+<div id="lightbox">
+  <button class="x" id="lb-close" aria-label="Close">✕</button>
+  <img id="lb-img" alt="">
+  <div class="cap" id="lb-cap"></div>
+</div>
 
 <div class="amodal" id="admin-modal">
   <div class="abox">

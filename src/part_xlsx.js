@@ -438,6 +438,14 @@ async function loadRepoTeam() {
     if (t) { repoTeam = t; renderTeamCards(); }
   } catch (e) { /* no published cards yet — the starter pair shows */ }
 }
+async function loadRepoGallery() {
+  if (!isHosted()) return;
+  try {
+    const r = await fetch('data/gallery.json', { cache: 'no-cache' }); if (!r.ok) return;
+    const t = sanitizeGallery(await r.json());
+    if (t) { repoGallery = t; if ($('#tab-gallery').classList.contains('on')) renderGallery(); }
+  } catch (e) { /* no published gallery yet */ }
+}
 async function loadRepoRoster() {
   if (!isHosted() || roster.length) return;     // never overwrite a roster someone built
   try {

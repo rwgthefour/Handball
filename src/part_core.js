@@ -298,6 +298,7 @@ function showTab(name) {
   $('#menu-btn').setAttribute('aria-expanded', 'false');
   if (name === 'season') renderSeason();
   if (name === 'roster') { renderTeamCards(); renderRoster(); }
+  if (name === 'gallery') renderGallery();
   if (name === 'home') renderHome();
   window.scrollTo(0, 0);
 }
@@ -310,6 +311,7 @@ document.addEventListener('click', ev => {
   if (!ev.target.closest('.menu-wrap')) { $('#menu').classList.remove('open'); $('#menu-btn').setAttribute('aria-expanded', 'false'); }
 });
 $$('#menu button[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$('#menu-donate').addEventListener('click', () => $('#menu').classList.remove('open'));
 $$('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
 function renderHome() {
   const r = $('#home-resume');
@@ -347,7 +349,7 @@ $('#mroster-toggle').addEventListener('click', () => {
 const DEFAULT_TEAM = { v: 1, cards: [
   { id: 'c-cav', sec: 'coach', name: 'Mike Cavanaugh', role: 'Head Coach', badge: false,
     photo: 'cavanaugh', pos: '', home: '', major: '', career: '' },
-  { id: 'p-tie', sec: 'player', name: 'C1C Jack P. Tierney', role: 'Team Captain', badge: true,
+  { id: 'p-tie', sec: 'captain', name: 'C1C Jack P. Tierney', role: 'Team Captain', badge: true,
     photo: 'tierney', pos: 'Center Back', home: 'Iowa City, Iowa', major: 'Systems Engineering', career: 'Pilot' },
 ] };
 let teamLocal = sanitizeTeam(lsGet('afahb.team.v1', null));   // this device's working copy
@@ -355,10 +357,14 @@ let repoTeam = null;                                          // published data/
 function sanitizeTeam(t) {
   if (!t || !Array.isArray(t.cards)) return null;
   const cards = t.cards.filter(c => c && String(c.name || '').trim()).map(c => ({
-    id: String(c.id || uid()), sec: c.sec === 'coach' ? 'coach' : 'player',
+    id: String(c.id || uid()),
+    // sections: coach / captain / cic / player — an older file's captain
+    // (sec 'player' with the ribbon set) migrates into the captain section
+    sec: ['coach', 'captain', 'cic', 'player'].includes(c.sec) ? c.sec : 'player',
     name: String(c.name), role: String(c.role || ''), badge: !!c.badge,
     photo: String(c.photo || ''), pos: String(c.pos || ''), home: String(c.home || ''),
     major: String(c.major || ''), career: String(c.career || '') }));
+  for (const c of cards) if (c.sec === 'player' && c.badge) c.sec = 'captain';
   return cards.length ? { v: 1, cards } : null;
 }
 function activeTeam() { return teamLocal || repoTeam || DEFAULT_TEAM; }
@@ -399,7 +405,9 @@ function renderTeamCards() {
     s.appendChild(g); host.appendChild(s);
   };
   sec('Coaches', cards.filter(c => c.sec === 'coach'));
-  sec('Players', cards.filter(c => c.sec !== 'coach'));
+  sec('Team Captain', cards.filter(c => c.sec === 'captain'));
+  sec('CIC', cards.filter(c => c.sec === 'cic'));
+  sec('Players', cards.filter(c => c.sec === 'player'));
   renderTmList();
 }
 
@@ -466,8 +474,9 @@ $('#tm-save').addEventListener('click', () => {
   const name = $('#tm-name').value.trim();
   if (!name) { toast('Enter the title / name'); return; }
   ensureTeamLocal();
+  const secV = $('#tm-sec').value;
   const card = {
-    id: tmEditing || uid(), sec: $('#tm-sec').value === 'coach' ? 'coach' : 'player',
+    id: tmEditing || uid(), sec: ['coach', 'captain', 'cic'].includes(secV) ? secV : 'player',
     name, role: $('#tm-role').value.trim(), badge: $('#tm-badge').checked,
     photo: tmPhoto || '', pos: $('#tm-pos').value.trim(), home: $('#tm-home').value.trim(),
     major: $('#tm-major').value.trim(), career: $('#tm-career').value.trim(),
@@ -518,6 +527,127 @@ $('#tm-reset').addEventListener('click', () => {
   if (!confirm('Discard the edits on this device and show the published cards?')) return;
   teamLocal = null; lsSet('afahb.team.v1', null);
   renderTeamCards();
+});
+
+/* ---------- gallery ----------
+   Same publish shape as the team cards: admin adds photos in the browser
+   (resized client-side), the working copy lives on that device, and
+   DOWNLOAD gallery.json + a data/ upload publishes for everyone.
+   A photo src is a data URI, or a key into the build-time LOGOS bundle
+   (the starter entry shows the embedded team photo). */
+const DEFAULT_GALLERY = { v: 1, photos: [
+  { id: 'g-team', cap: 'Air Force team handball', src: 'teamphoto' },
+] };
+function sanitizeGallery(t) {
+  if (!t || !Array.isArray(t.photos)) return null;
+  const photos = t.photos.filter(p => p && String(p.src || '').trim()).map(p => ({
+    id: String(p.id || uid()), cap: String(p.cap || ''), src: String(p.src) }));
+  return photos.length ? { v: 1, photos } : null;
+}
+let galLocal = sanitizeGallery(lsGet('afahb.gallery.v1', null));
+let repoGallery = null;
+function activeGallery() { return galLocal || repoGallery || DEFAULT_GALLERY; }
+function galSrc(p) {
+  if (p.src.startsWith('data:')) return p.src;
+  return (typeof LOGOS !== 'undefined' && LOGOS[p.src]) || null;
+}
+function ensureGalLocal() {
+  if (!galLocal) galLocal = JSON.parse(JSON.stringify(activeGallery()));
+  return galLocal;
+}
+function saveGalLocal() { lsSet('afahb.gallery.v1', galLocal); renderGallery(); }
+function openLightbox(src, cap) {
+  $('#lb-img').src = src;
+  $('#lb-cap').textContent = cap || '';
+  $('#lightbox').classList.add('open');
+}
+$('#lb-close').addEventListener('click', () => $('#lightbox').classList.remove('open'));
+$('#lightbox').addEventListener('click', ev => { if (ev.target.id === 'lightbox') $('#lightbox').classList.remove('open'); });
+function renderGallery() {
+  const grid = $('#galgrid'); grid.textContent = '';
+  const photos = activeGallery().photos.filter(p => galSrc(p));
+  for (const p of photos) {
+    const tile = el('div', { cls: 'gph', onclick: () => openLightbox(galSrc(p), p.cap) },
+      el('img', { src: galSrc(p), alt: p.cap || 'Team photo', loading: 'lazy' }),
+      el('div', { cls: 'cap', text: p.cap || '' }));
+    grid.appendChild(tile);
+  }
+  $('#gal-empty').style.display = photos.length ? 'none' : 'block';
+  // manager list
+  const list = $('#gal-list'); list.textContent = '';
+  activeGallery().photos.forEach((p, i) => {
+    const capIn = el('input', { value: p.cap, placeholder: 'caption (optional)' });
+    capIn.addEventListener('change', () => {
+      ensureGalLocal();
+      const t = galLocal.photos.find(x => x.id === p.id);
+      if (t) { t.cap = capIn.value.trim(); saveGalLocal(); }
+    });
+    const row = el('div', { cls: 'glrow' },
+      galSrc(p) ? el('img', { src: galSrc(p), alt: '' }) : null,
+      capIn,
+      el('button', { text: '↑', title: 'Move up', onclick: () => {
+        ensureGalLocal(); if (i <= 0) return;
+        [galLocal.photos[i - 1], galLocal.photos[i]] = [galLocal.photos[i], galLocal.photos[i - 1]];
+        saveGalLocal();
+      } }),
+      el('button', { text: '↓', title: 'Move down', onclick: () => {
+        ensureGalLocal(); if (i >= galLocal.photos.length - 1) return;
+        [galLocal.photos[i + 1], galLocal.photos[i]] = [galLocal.photos[i], galLocal.photos[i + 1]];
+        saveGalLocal();
+      } }),
+      el('button', { text: '✕', title: 'Remove photo', onclick: () => {
+        if (!confirm('Remove this photo from the gallery?')) return;
+        ensureGalLocal();
+        galLocal.photos = galLocal.photos.filter(x => x.id !== p.id);
+        saveGalLocal();
+      } }));
+    list.appendChild(row);
+  });
+}
+$('#gal-add').addEventListener('change', async ev => {
+  const files = Array.from(ev.target.files); ev.target.value = '';
+  if (!files.length) return;
+  ensureGalLocal();
+  let added = 0;
+  for (const f of files) {
+    try {
+      const img = await new Promise((res, rej) => {
+        const i = new Image(); i.onload = () => res(i); i.onerror = rej;
+        i.src = URL.createObjectURL(f);
+      });
+      const s = Math.min(1, 1280 / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      galLocal.photos.push({ id: uid(), cap: '', src: cv.toDataURL('image/jpeg', 0.8) });
+      added++;
+    } catch (e) { /* skip unreadable file */ }
+  }
+  saveGalLocal();
+  toast(added + ' photo(s) added — publish with DOWNLOAD gallery.json when ready');
+});
+$('#gal-download').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(activeGallery(), null, 1)], { type: 'application/json' }));
+  a.download = 'gallery.json';
+  a.click();
+  toast('gallery.json downloaded — upload it to the repo\'s data/ folder to publish');
+});
+$('#gal-load-published').addEventListener('click', async () => {
+  if (!(location.protocol === 'http:' || location.protocol === 'https:')) { toast('Open the team website to load the published gallery'); return; }
+  try {
+    const r = await fetch('data/gallery.json', { cache: 'no-cache' });
+    if (!r.ok) { toast('No published gallery.json yet'); return; }
+    const t = sanitizeGallery(await r.json());
+    if (!t) { toast('Published gallery.json is empty'); return; }
+    galLocal = t; saveGalLocal();
+    toast('Published gallery loaded for editing');
+  } catch (e) { toast('Could not load the published gallery'); }
+});
+$('#gal-reset').addEventListener('click', () => {
+  if (!confirm('Discard the gallery edits on this device and show the published photos?')) return;
+  galLocal = null; lsSet('afahb.gallery.v1', null);
+  renderGallery();
 });
 
 /* ---------- game lifecycle ---------- */
