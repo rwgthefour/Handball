@@ -102,6 +102,16 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   ok('captain card carries the standard format', /C1C Jack P\. Tierney/.test(cardsTxt) && /Center Back/.test(cardsTxt)
     && /Iowa City, Iowa/.test(cardsTxt) && /Systems Engineering/.test(cardsTxt) && /Pilot/.test(cardsTxt));
   ok('captain ribbon shows', /TEAM CAPTAIN/.test(cardsTxt));
+  const ribbonInside = p => p.evaluate(() => {
+    const badge = document.querySelector('#team-cards .badge');
+    const ph = badge && badge.closest('.ph');
+    if (!badge || !ph) return false;
+    const rr = document.createRange(); rr.selectNodeContents(badge);
+    const t = rr.getBoundingClientRect(), b = ph.getBoundingClientRect();
+    return t.width > 0 && t.left >= b.left - 0.5 && t.top >= b.top - 0.5 && t.right <= b.right + 0.5 && t.bottom <= b.bottom + 0.5;
+  });
+  ok('ribbon label sits fully inside the photo (no clipping)', await ribbonInside(page));
+  ok('bottom text removed from every page', await page.$$eval('footer.app, .home-note', n => n.length) === 0);
   ok('photo placeholders render until portraits are uploaded', await page.$$eval('#team-cards .ph .noimg', n => n.length) === 2);
 
   console.log('— team card manager (admin builds cards in the browser) —');
@@ -482,6 +492,7 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await openRosterMgmt(p6);
   await p6.click('#btn-demo-roster');
   ok('phone: team page has no sideways scroll', await noOverflow(p6));
+  ok('phone: captain ribbon label fully visible at phone width', await ribbonInside(p6));
   await goTab(p6, 'game');
   await p6.fill('#g-opp', 'Navy');
   await p6.click('#btn-start');

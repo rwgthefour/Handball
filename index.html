@@ -65,7 +65,7 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .home-actions .act:hover{box-shadow:0 8px 22px rgba(8,25,80,.16);border-top-color:#c9a227}
 .act .t{font-weight:800;letter-spacing:.1em;color:var(--afa-blue);font-size:15px}
 .act .d{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
-.home-note{text-align:center;color:var(--ink-mut);font-size:12px;margin:18px 0 8px}
+.home-actions{padding-bottom:26px}
 
 /* ============ ADMIN WALL ============ */
 body:not(.admin) .adminonly{display:none !important}
@@ -103,8 +103,12 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .bbcard .ph .noimg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
 .bbcard .ph .noimg img{width:84px;height:84px;object-fit:contain;opacity:.55}
 .bbcard .ph .noimg span{font-size:10px;letter-spacing:.14em;color:#2c3e66;font-weight:700}
-.bbcard .badge{position:absolute;top:10px;left:-32px;transform:rotate(-38deg);background:#c9a227;color:#0d1220;
-  font-size:10px;font-weight:800;letter-spacing:.12em;padding:4px 36px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+/* classic corner ribbon: fixed 160px band rotated about its own centre at the
+   top-left corner, text centred — the band's ENDS clip on the corner (the
+   look), but the label itself always lands inside the photo at any card width */
+.bbcard .badge{position:absolute;top:34px;left:-30px;width:160px;transform:rotate(-45deg);text-align:center;
+  background:#c9a227;color:#0d1220;font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 0;
+  box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .bbcard .nm{background:#c9a227;color:#0d1220;text-align:center;font-weight:800;letter-spacing:.06em;
   padding:8px 6px;font-size:15px;margin-top:8px}
 .bbcard .role{text-align:center;color:#b9c6e8;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
@@ -291,7 +295,6 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   opacity:0;transition:opacity .25s;z-index:120;pointer-events:none;max-width:90vw}
 #toast.on{opacity:1}
 
-footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;letter-spacing:.05em}
 @media print{header.app,.sb,.menu-wrap,.btn,.pcard .btns,.opp-panel{display:none!important}}
 
 /* ============ MOBILE (most users are on phones) ============ */
@@ -374,7 +377,6 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
         player and keeper totals, and charts — then export the season report.</div>
     </button>
   </div>
-  <div class="home-note">Every game exports a full Excel workbook · nothing uploads anywhere — your data stays with you</div>
 </section>
 
 <!-- ================= GAME TAB ================= -->
@@ -671,8 +673,8 @@ footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;le
 
 <div id="toast"></div>
 <div class="viz-tip" id="viz-tip"></div>
-<footer class="app">USAFA TEAM HANDBALL STAT TRACKER · single-file, works offline · exports Excel (.xlsx) ·
-  built with SheetJS (Apache-2.0)</footer>
+<!-- SheetJS Community Edition is embedded above under Apache-2.0 -->
+
 
 <script>/* SheetJS Community Edition — Apache-2.0 — https://sheetjs.com */
 /*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
