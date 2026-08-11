@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>USAFA Team Handball — Stat Tracker</title>
+<style>
+/* ============ USAFA THEME ============ */
+:root{
+  --afa-blue:#003594; --afa-blue-dk:#00276b; --afa-blue-lt:#1a4fb3;
+  --silver:#8A8D8F; --steel:#d7dade;
+  --page:#f2f4f8; --card:#ffffff;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-mut:#898781;
+  --line:#e1e0d9; --hairline:rgba(11,11,11,.10);
+  /* chart tokens (validated reference palette, light mode) */
+  --surface-1:#fcfcfb;
+  --series-1:#2a78d6; --series-2:#eb6834;
+  --div-pos:#2a78d6; --div-neg:#e34948; --div-mid:#f0efec;
+  --grid:#e1e0d9; --axis:#c3c2b7;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--page);color:var(--ink);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit}
+h1,h2,h3{margin:0;font-weight:650}
+
+/* ============ HEADER ============ */
+header.app{background:linear-gradient(135deg,var(--afa-blue-dk),var(--afa-blue));
+  color:#fff;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.app img.crest{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
+header.app .ttl .l1{font-size:18px;font-weight:700;letter-spacing:.06em}
+header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-transform:uppercase}
+nav.tabs{margin-left:auto;display:flex;gap:6px}
+nav.tabs button{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);
+  color:#dfe6f5;padding:9px 18px;border-radius:0;letter-spacing:.08em;font-weight:600;font-size:13px}
+nav.tabs button.on{background:#fff;color:var(--afa-blue);border-color:#fff}
+.cui{background:#0d1220;color:#8fa3cc;text-align:center;font-size:10.5px;
+  letter-spacing:.18em;padding:3px 8px;text-transform:uppercase}
+
+main{max-width:1240px;margin:0 auto;padding:16px}
+section.tab{display:none}
+section.tab.on{display:block}
+
+/* ============ CARDS / GENERIC ============ */
+.card{background:var(--card);border:1px solid var(--hairline);box-shadow:0 1px 2px rgba(10,20,60,.05);
+  padding:14px 16px;margin-bottom:14px}
+.card>h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--afa-blue);
+  border-bottom:2px solid var(--afa-blue);display:inline-block;padding-bottom:4px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);font-weight:600}
+.fld input,.fld select,.fld textarea{border:1px solid var(--steel);padding:8px 10px;background:#fff;min-width:0}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--afa-blue-lt);outline-offset:-1px}
+.btn{border:1px solid var(--steel);background:#fff;padding:9px 16px;font-weight:600;letter-spacing:.04em}
+.btn:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
+.btn.pri{background:var(--afa-blue);border-color:var(--afa-blue);color:#fff}
+.btn.pri:hover{background:var(--afa-blue-lt);color:#fff}
+.btn.danger{border-color:var(--crit);color:var(--crit)}
+.btn.danger:hover{background:var(--crit);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.muted{color:var(--ink-mut)}
+.small{font-size:12px}
+.spacer{flex:1}
+.hint{font-size:12px;color:var(--ink-2);margin-top:8px}
+details.help{margin:-4px 0 12px}
+details.help summary{cursor:pointer;color:var(--afa-blue);font-weight:600;font-size:12.5px}
+details.help .bd{font-size:12.5px;color:var(--ink-2);padding:8px 0 0;max-width:900px}
+details.help .bd b{color:var(--ink)}
+
+/* ============ SCOREBOARD ============ */
+.sb{position:sticky;top:0;z-index:40;background:var(--afa-blue-dk);color:#fff;
+  display:flex;align-items:center;gap:14px;padding:8px 16px;flex-wrap:wrap;
+  border-bottom:3px solid #c9a227}
+.sb .teamside{display:flex;align-items:center;gap:9px;min-width:0}
+.sb img.tl{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:50%;padding:2px}
+.sb .gen{width:38px;height:38px;border-radius:50%;background:#5a6472;color:#fff;display:flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+.sb .tn{font-size:12px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;
+  max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb .num{font-size:38px;font-weight:800;line-height:1;min-width:52px;text-align:center;
+  font-variant-numeric:tabular-nums}
+.sb .mid{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sb .clock{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.04em;cursor:pointer}
+.sb .clock:hover{color:#ffd75e}
+.sb .halfrow{display:flex;gap:4px}
+.sb .halfrow button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#cfd8ee;
+  font-size:10.5px;padding:2px 8px;font-weight:700}
+.sb .halfrow button.on{background:#fff;color:var(--afa-blue-dk);border-color:#fff}
+.sb .ctl{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.sb .ctl .btn{padding:7px 12px;font-size:12.5px;background:rgba(255,255,255,.1);
+  border-color:rgba(255,255,255,.3);color:#fff}
+.sb .ctl .btn:hover{background:rgba(255,255,255,.22)}
+.sb .to{font-size:10.5px;color:#b9c6e8;letter-spacing:.06em}
+.sb .to b{color:#fff}
+
+/* ============ PLAYER GRID ============ */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
+.pcard{background:var(--card);border:1px solid var(--hairline);border-top:3px solid var(--afa-blue);
+  padding:9px 10px 10px}
+.pcard.gkon{border-top-color:#c9a227}
+.pcard .hd{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
+.pcard .no{font-size:19px;font-weight:800;color:var(--afa-blue);min-width:30px;font-variant-numeric:tabular-nums}
+.pcard .nm{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard .pos{margin-left:auto;font-size:10.5px;color:var(--ink-mut);letter-spacing:.08em;font-weight:700}
+.pcard .statline{font-size:11px;color:var(--ink-2);margin-bottom:7px;font-variant-numeric:tabular-nums}
+.pcard .btns{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.pcard .btns button{padding:8px 0;border:1px solid var(--steel);background:#fbfcfe;
+  font-size:11px;font-weight:700;color:var(--ink-2);min-height:34px}
+.pcard .btns button:hover{border-color:var(--afa-blue);color:var(--afa-blue);background:#eef3fc}
+.pcard .btns button.goal{grid-column:span 2;background:var(--afa-blue);border-color:var(--afa-blue);color:#fff;font-size:12.5px}
+.pcard .btns button.goal:hover{background:var(--afa-blue-lt)}
+.pcard .btns button.warnb:hover{border-color:#b58402;color:#8a6502;background:#fdf6e3}
+.pcard .btns button.redb:hover{border-color:var(--crit);color:var(--crit);background:#fdeeee}
+
+/* ============ OPPONENT / TEAM PANEL ============ */
+.opp-panel .btns{display:flex;gap:5px;flex-wrap:wrap}
+.opp-panel .btns button{padding:9px 13px;border:1px solid var(--steel);background:#fbfcfe;font-weight:700;font-size:12px}
+.opp-panel .btns button:hover{border-color:var(--series-2);color:#b34712;background:#fdf1ea}
+.opp-panel .btns button.og{background:#8c3f14;border-color:#8c3f14;color:#fff}
+.opp-panel .btns button.og:hover{background:#a54e1c}
+.gksel{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.gksel select{border:1px solid var(--steel);padding:7px 9px}
+.gksel .lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);font-weight:700}
+
+/* ============ EVENT LOG ============ */
+.elog{max-height:340px;overflow:auto;border:1px solid var(--line)}
+.elog table{width:100%;border-collapse:collapse;font-size:12.5px}
+.elog td{padding:5px 9px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.elog tr:hover td{background:#f4f7fd}
+.elog .evx{border:none;background:none;color:var(--ink-mut);font-size:13px;padding:0 4px}
+.elog .evx:hover{color:var(--crit)}
+.elog .tOPP{color:#a04d1c;font-weight:600}
+.elog .tAFA{color:var(--afa-blue);font-weight:600}
+.flash{animation:fl .8s}
+@keyframes fl{0%{background:#dbe7fb}100%{background:transparent}}
+
+/* ============ TABLES ============ */
+.tblwrap{overflow-x:auto}
+table.stats{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+table.stats th{background:var(--afa-blue);color:#fff;padding:7px 9px;text-align:right;
+  font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;user-select:none;position:sticky;top:0}
+table.stats th:first-child,table.stats th.l,table.stats td.l{text-align:left}
+table.stats td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.stats tr:nth-child(even) td{background:#f7f9fc}
+table.stats tr.tot td{font-weight:700;border-top:2px solid var(--afa-blue);background:#eef2fa}
+table.stats th .arr{font-size:9px;opacity:.9}
+
+/* ============ ROSTER ============ */
+.rtable input{border:1px solid transparent;background:transparent;padding:5px 7px;width:100%}
+.rtable input:hover{border-color:var(--steel)}
+.rtable input:focus{border-color:var(--afa-blue);background:#fff;outline:none}
+.rtable select{border:1px solid transparent;background:transparent;padding:5px 4px}
+.rtable td.c{text-align:center}
+.rtable .num-in{width:56px;text-align:center;font-weight:700}
+
+/* ============ SEASON ============ */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--hairline);border-top:3px solid var(--afa-blue);padding:12px 14px}
+.tile .lab{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);font-weight:700}
+.tile .val{font-size:30px;font-weight:700;margin-top:2px}
+.tile .sub{font-size:11.5px;color:var(--ink-2)}
+.dropzone{border:2px dashed var(--steel);padding:22px;text-align:center;color:var(--ink-2);background:#fbfcfe}
+.dropzone.over{border-color:var(--afa-blue);background:#eef3fc}
+.chartgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:920px){.chartgrid{grid-template-columns:1fr}}
+.chartcard{background:var(--surface-1);border:1px solid var(--hairline);padding:12px 14px}
+.chartcard h3{font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin-bottom:2px}
+.chartcard .sub{font-size:11.5px;color:var(--ink-mut);margin-bottom:8px}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--ink-2);margin:2px 0 6px;flex-wrap:wrap}
+.legend .k{display:inline-flex;align-items:center;gap:5px}
+.legend .sw{width:12px;height:12px;border-radius:2px}
+.legend .ln{width:16px;height:2px}
+.viz-tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--hairline);
+  box-shadow:0 2px 8px rgba(10,20,60,.18);padding:7px 10px;font-size:12px;z-index:99;display:none;min-width:110px}
+.viz-tip .t{font-weight:700;margin-bottom:3px}
+.viz-tip .r{display:flex;align-items:center;gap:6px;margin-top:2px}
+.viz-tip .r .key{width:12px;height:2.5px;flex:none}
+.viz-tip .r .v{font-weight:700;margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+
+/* ============ GOAL MAP ============ */
+#goalmap-wrap{position:relative;max-width:660px;margin:6px 0 4px}
+#goalmap{width:100%;display:block;touch-action:manipulation;cursor:crosshair;background:#f7f8fb;border:1px solid var(--line)}
+.gm-pop{position:absolute;z-index:60;background:#fff;border:1px solid var(--hairline);
+  box-shadow:0 6px 22px rgba(10,20,60,.25);padding:12px;width:250px;display:none}
+.gm-pop .seg{display:flex;margin-bottom:8px}
+.gm-pop .seg button{flex:1;padding:7px 4px;border:1px solid var(--steel);background:#fbfcfe;
+  font-size:11px;font-weight:700;color:var(--ink-2)}
+.gm-pop .seg button+button{border-left:none}
+.gm-pop .seg button.on{background:var(--afa-blue);border-color:var(--afa-blue);color:#fff}
+.gm-pop .seg.oc button.on{background:#444;border-color:#444}
+.gm-pop label.chk{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;margin:8px 0}
+.gm-pop select,.gm-pop input[type=text]{width:100%;border:1px solid var(--steel);padding:7px 9px;margin-bottom:2px}
+.gm-pop .acts{display:flex;gap:6px;margin-top:9px}
+.gm-pop .acts .btn{flex:1;padding:8px 4px;font-size:12px}
+.gm-list{font-size:12px;max-height:150px;overflow:auto;margin-top:8px}
+.gm-list .it{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+  padding:3px 7px;margin:0 5px 5px 0;background:#fff}
+.gm-list .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.gm-list button{border:none;background:none;color:var(--ink-mut);padding:0 2px;font-size:12px}
+.gm-list button:hover{color:var(--crit)}
+
+/* toast */
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--afa-blue-dk);
+  color:#fff;padding:9px 18px;font-weight:600;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.3);
+  opacity:0;transition:opacity .25s;z-index:120;pointer-events:none;max-width:90vw}
+#toast.on{opacity:1}
+
+footer.app{text-align:center;color:var(--ink-mut);font-size:11px;padding:18px;letter-spacing:.05em}
+@media print{header.app,.sb,nav.tabs,.btn,.pcard .btns,.opp-panel{display:none!important}}
+</style>
+</head>
+<body>
+<div class="cui">United States Air Force Academy · Team Handball · Internal statistics tool</div>
+<header class="app">
+  <img class="crest" id="crest" alt="U.S. Air Force Academy crest">
+  <div class="ttl">
+    <div class="l1">AIR FORCE TEAM HANDBALL</div>
+    <div class="l2">United States Air Force Academy · Stat Tracker</div>
+  </div>
+  <nav class="tabs">
+    <button data-tab="game" class="on">GAME</button>
+    <button data-tab="roster">ROSTER</button>
+    <button data-tab="season">SEASON</button>
+  </nav>
+</header>
+
+<!-- ================= GAME TAB ================= -->
+<section class="tab on" id="tab-game">
+  <div class="sb" id="scoreboard" style="display:none">
+    <div class="teamside">
+      <img class="tl" id="sb-us-logo" alt="Air Force">
+      <div><div class="tn">AIR FORCE</div><div class="to">TO left: <b id="sb-us-to">3</b></div></div>
+      <div class="num" id="sb-us">0</div>
+    </div>
+    <div class="mid">
+      <div class="clock" id="sb-clock" title="Click to edit the clock">00:00</div>
+      <div class="halfrow" id="sb-halves"></div>
+    </div>
+    <div class="teamside">
+      <div class="num" id="sb-them">0</div>
+      <div><div class="tn" id="sb-opp-name">OPPONENT</div><div class="to">TO left: <b id="sb-them-to">3</b></div></div>
+      <span id="sb-opp-logo-slot"></span>
+    </div>
+    <div class="ctl">
+      <button class="btn" id="btn-clock">▶ START CLOCK</button>
+      <button class="btn" id="btn-undo">↩ UNDO</button>
+      <button class="btn" id="btn-export-live">⬇ EXPORT XLSX</button>
+      <button class="btn" id="btn-endgame" style="border-color:#c9a227;color:#ffd75e">■ END GAME</button>
+    </div>
+  </div>
+
+  <div style="height:12px"></div>
+
+  <div class="card" id="setup-card">
+    <h2>Game setup</h2>
+    <details class="help"><summary>How this works</summary><div class="bd">
+      Fill in the game details and press <b>START GAME</b>. Log every action with one tap on a
+      player's card — the score, box score and play-by-play build themselves. Opponent shots and
+      goals are logged on the opponent panel and credit the keeper selected under <b>In goal</b>.
+      When the final whistle blows, press <b>END GAME</b>: the game is archived in this browser and a
+      complete <b>Excel workbook</b> downloads automatically. Load those workbooks on the SEASON tab
+      (any computer) to build season totals, tables and charts. Everything runs offline in this one file.
+    </div></details>
+    <div class="row">
+      <div class="fld"><label>Opponent</label>
+        <input id="g-opp" list="opp-list" placeholder="e.g. Army" style="width:200px">
+        <datalist id="opp-list">
+          <option value="Army"></option><option value="Navy"></option>
+          <option value="West Point Black"></option><option value="Air Force B"></option>
+        </datalist>
+      </div>
+      <div class="fld"><label>Date</label><input type="date" id="g-date"></div>
+      <div class="fld"><label>Location</label><input id="g-loc" placeholder="Cadet Gym, USAFA" style="width:200px"></div>
+      <div class="fld"><label>Home / Away</label>
+        <select id="g-ha"><option>Home</option><option>Away</option><option>Neutral</option></select></div>
+      <div class="fld"><label>Competition</label>
+        <select id="g-comp"><option>Regular season</option><option>Tournament</option><option>Nationals</option><option>Scrimmage</option><option>Exhibition</option></select></div>
+      <div class="fld"><label>Half length (min)</label><input type="number" id="g-halflen" value="30" min="5" max="45" style="width:80px"></div>
+      <div class="fld"><label>Notes</label><input id="g-notes" placeholder="optional" style="width:220px"></div>
+      <button class="btn pri" id="btn-start">START GAME</button>
+    </div>
+    <div class="hint" id="setup-hint"></div>
+  </div>
+
+  <div id="live-area" style="display:none">
+    <div class="card">
+      <h2>Air Force — tap a button to log it</h2>
+      <div class="muted small" style="margin-bottom:8px">
+        G goal · SV shot saved · MS shot missed · BL shot blocked · 7G 7-meter goal · 7X 7-meter missed ·
+        7D 7-meter drawn · A assist · TO turnover · ST steal · BK block · 2' two-minute ·
+        2D drew a 2-minute · YC / RC cards
+      </div>
+      <div class="pgrid" id="pgrid"></div>
+      <div class="hint" id="pgrid-hint"></div>
+    </div>
+
+    <div class="card opp-panel">
+      <h2 id="opp-panel-title">Opponent</h2>
+      <div class="gksel">
+        <span class="lab">In goal for Air Force:</span>
+        <select id="gk-sel"></select>
+        <span class="muted small">opponent shots credit this keeper</span>
+      </div>
+      <div class="btns">
+        <button class="og" data-oev="ogoal">GOAL</button>
+        <button class="og" data-oev="og7">7m GOAL</button>
+        <button data-oev="osave">SHOT SAVED (our save)</button>
+        <button data-oev="os7">7m SAVED</button>
+        <button data-oev="osavew">SAVE AFTER WHISTLE</button>
+        <button data-oev="omiss">SHOT MISSED</button>
+        <button data-oev="o7miss">7m MISSED</button>
+        <button data-oev="oto">TURNOVER</button>
+        <button data-oev="op2">2 MIN</button>
+        <button data-oev="oyc">YELLOW</button>
+        <button data-oev="orc">RED</button>
+        <button data-oev="otimeout">TEAM TIMEOUT</button>
+      </div>
+    </div>
+
+    <div class="card" id="goalmap-card">
+      <h2>Goal map — tap where the shot went</h2>
+      <div class="muted small">Tap a spot on (or just outside) the goal, then pick the team, the shooter and
+        whether it was a 7-meter. The marker shows the shooter's number, colored by team — filled = goal,
+        hollow = saved, gray = missed. Map entries feed the box score automatically, so log each shot
+        <b>either</b> here <b>or</b> with the buttons above, not both.</div>
+      <div id="goalmap-wrap">
+        <svg id="goalmap" viewBox="0 0 360 250" role="img" aria-label="Handball goal shot map"></svg>
+        <div class="gm-pop" id="gm-pop">
+          <div class="seg" id="gm-team">
+            <button data-v="AFA" class="on">AIR FORCE</button><button data-v="OPP" id="gm-opp-btn">OPPONENT</button>
+          </div>
+          <div id="gm-afa-shooter"><select id="gm-player"></select></div>
+          <div id="gm-opp-shooter" style="display:none"><input type="text" id="gm-onum" placeholder="Opponent jersey #" inputmode="numeric"></div>
+          <div class="seg oc" id="gm-outcome" style="margin-top:8px">
+            <button data-v="goal" class="on">GOAL</button><button data-v="saved">SAVED</button><button data-v="missed">MISSED</button>
+          </div>
+          <label class="chk"><input type="checkbox" id="gm-pen"> 7-meter (penalty)</label>
+          <div class="acts">
+            <button class="btn pri" id="gm-save">LOG SHOT</button>
+            <button class="btn" id="gm-cancel">CANCEL</button>
+          </div>
+        </div>
+      </div>
+      <div class="legend" id="gm-legend">
+        <span class="k"><span class="sw" style="background:var(--series-1)"></span>Air Force</span>
+        <span class="k"><span class="sw" style="background:var(--series-2)"></span>Opponent</span>
+        <span class="k"><span class="sw" style="background:#fff;border:2px solid var(--series-1);width:9px;height:9px"></span>Saved</span>
+        <span class="k"><span class="sw" style="background:#c8cbd2"></span>Missed</span>
+        <span class="k" style="font-weight:700">P</span><span style="margin-left:-10px">= 7-meter</span>
+      </div>
+      <div class="gm-list" id="gm-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Team</h2>
+      <div class="row">
+        <button class="btn" id="btn-us-timeout">AIR FORCE TIMEOUT</button>
+        <div class="fld" style="flex-direction:row;align-items:center;gap:6px">
+          <input id="note-in" placeholder="note for the play-by-play…" style="border:1px solid var(--steel);padding:8px 10px;width:280px">
+          <button class="btn" id="btn-note">ADD NOTE</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Live box score</h2>
+      <div class="tblwrap" id="livebox"></div>
+      <div class="tblwrap" id="livegk" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Play-by-play</h2>
+      <div class="elog" id="elog"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ROSTER TAB ================= -->
+<section class="tab" id="tab-roster">
+  <div class="card">
+    <h2>Roster</h2>
+    <details class="help"><summary>How this works</summary><div class="bd">
+      Add every cadet once — number, name, position (<b>GK</b> marks goalkeepers). The roster is
+      saved in this browser and reused every game. Untick <b>Dressed</b> for anyone not playing
+      today and they stay off the game screen. Edits here are live; click a cell to change it.
+    </div></details>
+    <div class="row" style="margin-bottom:12px">
+      <div class="fld"><label>#</label><input type="number" id="r-num" min="1" max="99" style="width:70px"></div>
+      <div class="fld"><label>Name</label><input id="r-name" placeholder="Last, First  or  First Last" style="width:230px"></div>
+      <div class="fld"><label>Position</label>
+        <select id="r-pos"><option>GK</option><option>LW</option><option>LB</option><option>CB</option><option>RB</option><option>RW</option><option>P</option></select></div>
+      <div class="fld"><label>Class year</label><input id="r-year" placeholder="2027" style="width:80px"></div>
+      <button class="btn pri" id="btn-addplayer">ADD PLAYER</button>
+      <div class="spacer"></div>
+      <button class="btn" id="btn-roster-export">⬇ SAVE ROSTER (.xlsx)</button>
+      <label class="btn" style="display:inline-block">⬆ LOAD ROSTER
+        <input type="file" id="roster-file" accept=".xlsx,.xls" style="display:none"></label>
+      <button class="btn" id="btn-demo-roster">LOAD SAMPLE ROSTER</button>
+      <button class="btn danger" id="btn-clear-roster">CLEAR ROSTER</button>
+    </div>
+    <div class="tblwrap"><table class="stats rtable" id="roster-table"></table></div>
+  </div>
+</section>
+
+<!-- ================= SEASON TAB ================= -->
+<section class="tab" id="tab-season">
+  <div class="card">
+    <h2>Season data</h2>
+    <details class="help"><summary>How this works</summary><div class="bd">
+      Games ended on this computer appear automatically. To add games tracked elsewhere, drop their
+      exported <b>.xlsx</b> files below (you can select many at once) — the tool reads its own
+      workbooks back and merges everything, skipping duplicates by game ID. <b>EXPORT SEASON REPORT</b>
+      writes one Excel workbook with the season summary, player totals, goalkeeper totals and game log.
+    </div></details>
+    <div class="dropzone" id="dropzone">
+      <b>Drop game .xlsx files here</b> or
+      <label style="color:var(--afa-blue);text-decoration:underline;cursor:pointer">browse
+        <input type="file" id="file-in" accept=".xlsx,.xls" multiple style="display:none"></label>
+      <div class="small muted" style="margin-top:4px" id="import-status">No files imported yet — showing games saved in this browser.</div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn pri" id="btn-season-export">⬇ EXPORT SEASON REPORT (.xlsx)</button>
+      <button class="btn" id="btn-clear-imports">CLEAR IMPORTED FILES</button>
+      <div class="spacer"></div>
+      <span class="muted small" id="season-count"></span>
+    </div>
+  </div>
+
+  <div id="season-body">
+    <div class="tiles" id="tiles"></div>
+    <div class="chartgrid" id="charts"></div>
+    <div class="card" style="margin-top:14px">
+      <h2>Game log</h2>
+      <div class="tblwrap" id="gamelog"></div>
+    </div>
+    <div class="card">
+      <h2>Player season totals <span class="muted small" style="text-transform:none;letter-spacing:0">— click a column to sort</span></h2>
+      <div class="tblwrap" id="season-players"></div>
+    </div>
+    <div class="card">
+      <h2>Goalkeeper season totals</h2>
+      <div class="tblwrap" id="season-gk"></div>
+    </div>
+    <div class="card" id="storage-card">
+      <h2>Games saved in this browser</h2>
+      <div class="tblwrap" id="storage-list"></div>
+    </div>
+  </div>
+</section>
+
+<div id="toast"></div>
+<div class="viz-tip" id="viz-tip"></div>
+<footer class="app">USAFA TEAM HANDBALL STAT TRACKER · single-file, works offline · exports Excel (.xlsx) ·
+  built with SheetJS (Apache-2.0)</footer>
