@@ -594,6 +594,7 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
           <input type="checkbox" id="tm-badge"> gold CAPTAIN ribbon</label>
       </div>
       <div class="row">
+        <div class="fld"><label>Squadron</label><input id="tm-sq" placeholder="CS-27" style="width:110px"></div>
         <div class="fld"><label>Position</label><input id="tm-pos" style="width:150px"></div>
         <div class="fld"><label>Hometown</label><input id="tm-home" style="width:190px"></div>
         <div class="fld"><label>Major</label><input id="tm-major" style="width:190px"></div>
@@ -1132,12 +1133,20 @@ function sanitizeTeam(t) {
     // (sec 'player' with the ribbon set) migrates into the captain section
     sec: ['coach', 'captain', 'cic', 'player'].includes(c.sec) ? c.sec : 'player',
     name: String(c.name), role: String(c.role || ''), badge: !!c.badge,
-    photo: String(c.photo || ''), pos: String(c.pos || ''), home: String(c.home || ''),
+    photo: String(c.photo || ''), sq: String(c.sq || ''), pos: String(c.pos || ''), home: String(c.home || ''),
     major: String(c.major || ''), career: String(c.career || '') }));
   for (const c of cards) if (c.sec === 'player' && c.badge) c.sec = 'captain';
-  return cards.length ? { v: 1, cards } : null;
+  return cards.length ? { v: 1, ts: Number(t.ts) || 0, cards } : null;
 }
 function activeTeam() { return teamLocal || repoTeam || DEFAULT_TEAM; }
+/* PUBLISHED WINS. A device's working copy only survives if it holds edits
+   made AFTER the published file was generated (its ts stamp) — otherwise a
+   publish is a fresh start for every device, no buttons to press. */
+function reconcileTeam() {
+  if (repoTeam && teamLocal && !(Number(teamLocal.ts || 0) > Number(repoTeam.ts || 0))) {
+    teamLocal = null; lsSet('afahb.team.v1', null);
+  }
+}
 function cardPhotoSrc(c) {
   if (c.photo && c.photo.startsWith('data:')) return c.photo;
   if (c.photo && typeof PHOTOS !== 'undefined' && PHOTOS && PHOTOS[c.photo]) return PHOTOS[c.photo];
@@ -1154,7 +1163,7 @@ function bbCard(c) {
   const frame = el('div', { cls: 'frame' }, ph,
     el('div', { cls: 'nm', text: c.name }),
     el('div', { cls: 'role', text: c.role || '' }));
-  const entries = [['Position', c.pos], ['Hometown', c.home], ['Major', c.major], ['Intended Career Field', c.career]]
+  const entries = [['Squadron', c.sq], ['Position', c.pos], ['Hometown', c.home], ['Major', c.major], ['Intended Career Field', c.career]]
     .filter(e => String(e[1] || '').trim());
   if (entries.length) {
     const fields = el('div', { cls: 'fields' });
@@ -1188,7 +1197,7 @@ function ensureTeamLocal() {
   if (!teamLocal) teamLocal = JSON.parse(JSON.stringify(activeTeam()));
   return teamLocal;
 }
-function saveTeamLocal() { lsSet('afahb.team.v1', teamLocal); renderTeamCards(); }
+function saveTeamLocal() { teamLocal.ts = Date.now(); lsSet('afahb.team.v1', teamLocal); renderTeamCards(); }
 function renderTmList() {
   const host = $('#tm-list'); if (!host) return;
   host.textContent = '';
@@ -1210,6 +1219,8 @@ function renderTmList() {
     host.appendChild(row);
   });
   if (!cards.length) host.appendChild(el('div', { cls: 'small muted', text: 'No cards yet — add a coach or a player below.' }));
+  if (teamLocal) host.appendChild(el('div', { cls: 'small', style: 'color:#8a6502;font-weight:600;padding:8px 4px 0',
+    text: 'This device holds unpublished edits — DOWNLOAD team.json and upload it to data/ to publish, or DISCARD to sync with the site.' }));
 }
 function tmMove(i, dir) {
   ensureTeamLocal();
@@ -1227,6 +1238,7 @@ function tmOpenEditor(id) {
   $('#tm-name').value = c ? c.name : '';
   $('#tm-role').value = c ? c.role : '';
   $('#tm-badge').checked = c ? c.badge : false;
+  $('#tm-sq').value = c ? c.sq : '';
   $('#tm-pos').value = c ? c.pos : '';
   $('#tm-home').value = c ? c.home : '';
   $('#tm-major').value = c ? c.major : '';
@@ -1248,7 +1260,7 @@ $('#tm-save').addEventListener('click', () => {
   const card = {
     id: tmEditing || uid(), sec: ['coach', 'captain', 'cic'].includes(secV) ? secV : 'player',
     name, role: $('#tm-role').value.trim(), badge: $('#tm-badge').checked,
-    photo: tmPhoto || '', pos: $('#tm-pos').value.trim(), home: $('#tm-home').value.trim(),
+    photo: tmPhoto || '', sq: $('#tm-sq').value.trim(), pos: $('#tm-pos').value.trim(), home: $('#tm-home').value.trim(),
     major: $('#tm-major').value.trim(), career: $('#tm-career').value.trim(),
   };
   const ix = teamLocal.cards.findIndex(x => x.id === card.id);
@@ -1275,7 +1287,8 @@ $('#tm-photo').addEventListener('change', async ev => {
 });
 $('#tm-photo-clear').addEventListener('click', () => { tmPhoto = ''; $('#tm-photo-prev').removeAttribute('src'); });
 $('#tm-download').addEventListener('click', () => {
-  const data = JSON.stringify(activeTeam(), null, 1);
+  // the stamp makes this file supersede every device's older working copy
+  const data = JSON.stringify(Object.assign({}, activeTeam(), { ts: Date.now() }), null, 1);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
   a.download = 'team.json';
@@ -1312,11 +1325,16 @@ function sanitizeGallery(t) {
   if (!t || !Array.isArray(t.photos)) return null;
   const photos = t.photos.filter(p => p && String(p.src || '').trim()).map(p => ({
     id: String(p.id || uid()), cap: String(p.cap || ''), src: String(p.src) }));
-  return photos.length ? { v: 1, photos } : null;
+  return photos.length ? { v: 1, ts: Number(t.ts) || 0, photos } : null;
 }
 let galLocal = sanitizeGallery(lsGet('afahb.gallery.v1', null));
 let repoGallery = null;
 function activeGallery() { return galLocal || repoGallery || DEFAULT_GALLERY; }
+function reconcileGallery() {          // published wins — same rule as the cards
+  if (repoGallery && galLocal && !(Number(galLocal.ts || 0) > Number(repoGallery.ts || 0))) {
+    galLocal = null; lsSet('afahb.gallery.v1', null);
+  }
+}
 function galSrc(p) {
   if (p.src.startsWith('data:')) return p.src;
   return (typeof LOGOS !== 'undefined' && LOGOS[p.src]) || null;
@@ -1325,7 +1343,7 @@ function ensureGalLocal() {
   if (!galLocal) galLocal = JSON.parse(JSON.stringify(activeGallery()));
   return galLocal;
 }
-function saveGalLocal() { lsSet('afahb.gallery.v1', galLocal); renderGallery(); }
+function saveGalLocal() { galLocal.ts = Date.now(); lsSet('afahb.gallery.v1', galLocal); renderGallery(); }
 function openLightbox(src, cap) {
   $('#lb-img').src = src;
   $('#lb-cap').textContent = cap || '';
@@ -1398,7 +1416,7 @@ $('#gal-add').addEventListener('change', async ev => {
 });
 $('#gal-download').addEventListener('click', () => {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(activeGallery(), null, 1)], { type: 'application/json' }));
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.assign({}, activeGallery(), { ts: Date.now() }), null, 1)], { type: 'application/json' }));
   a.download = 'gallery.json';
   a.click();
   toast('gallery.json downloaded — upload it to the repo\'s data/ folder to publish');
@@ -2326,7 +2344,7 @@ async function loadRepoTeam() {
   try {
     const r = await fetch('data/team.json', { cache: 'no-cache' }); if (!r.ok) return;
     const t = sanitizeTeam(await r.json());
-    if (t) { repoTeam = t; renderTeamCards(); }
+    if (t) { repoTeam = t; reconcileTeam(); renderTeamCards(); }
   } catch (e) { /* no published cards yet — the starter pair shows */ }
 }
 async function loadRepoGallery() {
@@ -2334,7 +2352,7 @@ async function loadRepoGallery() {
   try {
     const r = await fetch('data/gallery.json', { cache: 'no-cache' }); if (!r.ok) return;
     const t = sanitizeGallery(await r.json());
-    if (t) { repoGallery = t; if ($('#tab-gallery').classList.contains('on')) renderGallery(); }
+    if (t) { repoGallery = t; reconcileGallery(); if ($('#tab-gallery').classList.contains('on')) renderGallery(); }
   } catch (e) { /* no published gallery yet */ }
 }
 async function loadRepoRoster() {

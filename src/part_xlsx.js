@@ -435,7 +435,7 @@ async function loadRepoTeam() {
   try {
     const r = await fetch('data/team.json', { cache: 'no-cache' }); if (!r.ok) return;
     const t = sanitizeTeam(await r.json());
-    if (t) { repoTeam = t; renderTeamCards(); }
+    if (t) { repoTeam = t; reconcileTeam(); renderTeamCards(); }
   } catch (e) { /* no published cards yet — the starter pair shows */ }
 }
 async function loadRepoGallery() {
@@ -443,7 +443,7 @@ async function loadRepoGallery() {
   try {
     const r = await fetch('data/gallery.json', { cache: 'no-cache' }); if (!r.ok) return;
     const t = sanitizeGallery(await r.json());
-    if (t) { repoGallery = t; if ($('#tab-gallery').classList.contains('on')) renderGallery(); }
+    if (t) { repoGallery = t; reconcileGallery(); if ($('#tab-gallery').classList.contains('on')) renderGallery(); }
   } catch (e) { /* no published gallery yet */ }
 }
 async function loadRepoRoster() {

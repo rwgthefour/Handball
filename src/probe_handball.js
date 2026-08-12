@@ -17,7 +17,7 @@ const ADMIN_PW = 'handball2027';
 /* --prep-hosted <dir>: build the staged copy the hosted section is served from
    (repo page + games + roster + a TEST team.json), then exit. run_probe.sh
    calls this before starting the server. */
-const TEST_TEAM = { v: 1, cards: [
+const TEST_TEAM = { v: 1, ts: 1000000, cards: [
   { id: 'tc', sec: 'coach', name: 'Coach Hosted Check', role: 'Head Coach', badge: false, photo: '', pos: '', home: '', major: '', career: '' },
   { id: 'tp', sec: 'player', name: 'C2C Hosted Check', role: '', badge: false, photo: '', pos: 'Pivot', home: 'Denver, Colorado', major: 'History', career: 'Intel' },
 ] };
@@ -129,6 +129,7 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await page.selectOption('#tm-sec', 'cic');            // the new CIC section
   await page.fill('#tm-name', 'C4C Test Falcon');
   await page.fill('#tm-role', 'Wing');
+  await page.fill('#tm-sq', 'CS-27');
   await page.fill('#tm-pos', 'Left Wing');
   await page.fill('#tm-home', 'Reno, Nevada');
   await page.fill('#tm-major', 'Astronautical Engineering');
@@ -140,6 +141,11 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   ok('new card renders with the standard fields', /C4C Test Falcon/.test(tc2) && /Reno, Nevada/.test(tc2) && /Combat Systems Officer/.test(tc2), tc2.slice(0, 80));
   const secOrder = await page.$$eval('#team-cards .team-sec > h2', h => h.map(x => x.textContent));
   ok('sections read Coaches → Team Captain → CIC', JSON.stringify(secOrder) === JSON.stringify(['Coaches', 'Team Captain', 'CIC']), secOrder.join(' | '));
+  ok('Squadron field renders above Position', await page.evaluate(() => {
+    const card = Array.from(document.querySelectorAll('#team-cards .bbcard')).find(c => c.textContent.includes('C4C Test Falcon'));
+    const labels = Array.from(card.querySelectorAll('.fields .fl')).map(x => x.textContent);
+    return labels[0] === 'Squadron' && labels[1] === 'Position' && card.textContent.includes('CS-27');
+  }));
   ok('uploaded photo is card-cropped and replaces the placeholder', await page.evaluate(() => {
     const card = Array.from(document.querySelectorAll('#team-cards .bbcard')).find(c => c.textContent.includes('C4C Test Falcon'));
     const img = card && card.querySelector('.ph > img');
@@ -526,6 +532,24 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await goTab(p5, 'gallery');
   ok('published gallery renders for visitors', /Hosted Gallery Check/.test(await p5.$eval('#galgrid', e => e.textContent))
     && await p5.$$eval('#galgrid .gph img', im => im.length === 1));
+  // published-wins reconciliation: a stale device draft yields to the publish…
+  await p5.evaluate(() => localStorage.setItem('afahb.team.v1', JSON.stringify({ v: 1, ts: 1,
+    cards: [{ id: 's1', sec: 'player', name: 'Stale Local Card', role: '', badge: false, photo: '', pos: '', home: '', major: '', career: '' }] })));
+  await p5.reload();
+  await goTab(p5, 'roster');
+  await p5.waitForFunction(() => /Hosted Check/.test(document.getElementById('team-cards').textContent), undefined, { timeout: 8000 });
+  ok('a stale device draft is replaced by the published cards (fresh start for everyone)',
+    !/Stale Local Card/.test(await p5.$eval('#team-cards', e => e.textContent))
+    && await p5.evaluate(() => localStorage.getItem('afahb.team.v1') === null));
+  // …but a draft NEWER than the published file survives on that device
+  await p5.evaluate(() => localStorage.setItem('afahb.team.v1', JSON.stringify({ v: 1, ts: 9e15,
+    cards: [{ id: 'n1', sec: 'player', name: 'Newer Unpublished Card', role: '', badge: false, photo: '', pos: '', home: '', major: '', career: '' }] })));
+  await p5.reload();
+  await goTab(p5, 'roster');
+  await sleep(900);
+  ok('a device draft newer than the publish survives (mid-edit protection)',
+    /Newer Unpublished Card/.test(await p5.$eval('#team-cards', e => e.textContent)));
+  await p5.evaluate(() => localStorage.removeItem('afahb.team.v1'));
 
   console.log('— mobile (375×812, touch) —');
   const ctx6 = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
