@@ -402,17 +402,27 @@ function bbCard(c) {
   }
   return el('div', { cls: 'bbcard' }, frame);
 }
+/* The head coach sits in the MIDDLE of the coaches row; the assistants keep
+   their stored order around them. Data-driven off the role line, so adding a
+   fourth coach re-centres by itself and nobody has to re-sort by hand. */
+function centerLead(list, isLead) {
+  const i = list.findIndex(isLead);
+  if (i < 0) return list;
+  const rest = list.filter((_, j) => j !== i);
+  const half = Math.floor(rest.length / 2);
+  return rest.slice(0, half).concat([list[i]], rest.slice(half));
+}
 function renderTeamCards() {
   const host = $('#team-cards'); host.textContent = '';
   const cards = activeTeam().cards;
   const sec = (title, list) => {
     if (!list.length) return;
     const s = el('div', { cls: 'team-sec' }, el('h2', { text: title }));
-    const g = el('div', { cls: 'bbgrid' + (list.length < 3 ? ' solo' : '') });
+    const g = el('div', { cls: 'bbgrid' });
     for (const c of list) g.appendChild(bbCard(c));
     s.appendChild(g); host.appendChild(s);
   };
-  sec('Coaches', cards.filter(c => c.sec === 'coach'));
+  sec('Coaches', centerLead(cards.filter(c => c.sec === 'coach'), c => /head/i.test(c.role || '')));
   sec('Team Captain', cards.filter(c => c.sec === 'captain'));
   sec('CIC', cards.filter(c => c.sec === 'cic'));
   sec('Players', cards.filter(c => c.sec === 'player'));

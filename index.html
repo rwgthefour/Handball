@@ -98,10 +98,13 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .team-sec>h2{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--afa-blue-dk);
   text-align:center;margin:22px 0 16px;position:relative}
 .team-sec>h2::after{content:'';display:block;width:64px;height:3px;background:#c9a227;margin:8px auto 0}
-.bbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px;justify-items:center}
-.bbgrid.solo{grid-template-columns:repeat(auto-fit,270px);justify-content:center}
-.bbcard{width:100%;max-width:290px;background:linear-gradient(160deg,#00276b,#003594 60%,#00276b);
-  border:1px solid #c9a227;box-shadow:0 8px 24px rgba(6,16,50,.28);padding:10px}
+/* flex, not grid: a part-full last row centres itself instead of hugging the
+   left, so every section reads centred at any card count and screen width */
+.bbgrid{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:stretch}
+.bbcard{flex:0 1 270px;max-width:290px;background:linear-gradient(160deg,#00276b,#003594 60%,#00276b);
+  border:1px solid #c9a227;box-shadow:0 8px 24px rgba(6,16,50,.28);padding:10px;
+  display:flex;flex-direction:column}
+.bbcard .frame{flex:1;display:flex;flex-direction:column}
 .bbcard .frame{border:1px solid rgba(255,255,255,.35);padding:8px}
 .bbcard .ph{aspect-ratio:3/4;background:linear-gradient(180deg,#c9d4ea,#8fa3cc);position:relative;overflow:hidden}
 .bbcard .ph img{width:100%;height:100%;object-fit:cover;display:block}
@@ -114,8 +117,11 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .bbcard .badge{position:absolute;top:34px;left:-30px;width:160px;transform:rotate(-45deg);text-align:center;
   background:#c9a227;color:#0d1220;font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 0;
   box-shadow:0 2px 6px rgba(0,0,0,.35)}
+/* min-height so a two-line name (a rank + full name) leaves the card the same
+   height as a one-line one — otherwise a row of cards steps up and down */
 .bbcard .nm{background:#c9a227;color:#0d1220;text-align:center;font-weight:800;letter-spacing:.06em;
-  padding:8px 6px;font-size:15px;margin-top:8px}
+  padding:8px 10px;font-size:15px;margin-top:8px;min-height:60px;   /* = a two-line name */
+  display:flex;align-items:center;justify-content:center}
 .bbcard .role{text-align:center;color:#b9c6e8;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
   padding:6px 0 2px}
 .bbcard .fields{background:#fff;margin-top:8px;padding:10px 12px}
@@ -573,6 +579,8 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       the repo's <b>data</b> folder → <b>Add file → Upload files</b> → drop the file in (replacing
       the old one) → Commit. The site updates for everyone about a minute later. To edit what is
       already published from a fresh device, press <b>LOAD PUBLISHED CARDS</b> first.
+      <br><br>Whoever's role line says <b>Head Coach</b> is placed in the middle of the coaches row
+      automatically — the arrows below set the order of everyone around them.
     </div></details>
     <div id="tm-list"></div>
     <div class="row" style="margin-top:10px">
@@ -1173,17 +1181,27 @@ function bbCard(c) {
   }
   return el('div', { cls: 'bbcard' }, frame);
 }
+/* The head coach sits in the MIDDLE of the coaches row; the assistants keep
+   their stored order around them. Data-driven off the role line, so adding a
+   fourth coach re-centres by itself and nobody has to re-sort by hand. */
+function centerLead(list, isLead) {
+  const i = list.findIndex(isLead);
+  if (i < 0) return list;
+  const rest = list.filter((_, j) => j !== i);
+  const half = Math.floor(rest.length / 2);
+  return rest.slice(0, half).concat([list[i]], rest.slice(half));
+}
 function renderTeamCards() {
   const host = $('#team-cards'); host.textContent = '';
   const cards = activeTeam().cards;
   const sec = (title, list) => {
     if (!list.length) return;
     const s = el('div', { cls: 'team-sec' }, el('h2', { text: title }));
-    const g = el('div', { cls: 'bbgrid' + (list.length < 3 ? ' solo' : '') });
+    const g = el('div', { cls: 'bbgrid' });
     for (const c of list) g.appendChild(bbCard(c));
     s.appendChild(g); host.appendChild(s);
   };
-  sec('Coaches', cards.filter(c => c.sec === 'coach'));
+  sec('Coaches', centerLead(cards.filter(c => c.sec === 'coach'), c => /head/i.test(c.role || '')));
   sec('Team Captain', cards.filter(c => c.sec === 'captain'));
   sec('CIC', cards.filter(c => c.sec === 'cic'));
   sec('Players', cards.filter(c => c.sec === 'player'));

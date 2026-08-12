@@ -11,7 +11,10 @@ const { chromium } = require(path.join(REPO, 'node_modules', 'playwright'));
 const apolloChrome = require(path.join(REPO, 'apollo_chrome.js'));
 const { spawn } = require('child_process');
 const PAGE = 'file://' + path.join(REPO_HB, 'index.html');
-const LEGACY = '/Users/willgarrett/Downloads/Handball Stats.xlsx';
+// the team's legacy workbook, from the REPO copy — never ~/Downloads, which is
+// TCC-protected on macOS and readable only by luck (it silently stopped being
+// readable mid-session and read as an importer regression)
+const LEGACY = path.join(REPO_HB, 'games', '2025_Season_Legacy.xlsx');
 const ADMIN_PW = 'handball2027';
 
 /* --prep-hosted <dir>: build the staged copy the hosted section is served from
@@ -173,6 +176,37 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   });
   await sleep(150);
   ok('card deletes from the manager', !/C4C Test Falcon/.test(await page.$eval('#team-cards', e => e.textContent)));
+
+  console.log('— coaches row: head coach centred, row centred, plates uniform —');
+  for (const nm of ['Lt Col Test Assistant', 'Col (RET) Test Assistant Two']) {
+    await page.click('#tm-add-coach');
+    await page.fill('#tm-name', nm);
+    await page.fill('#tm-role', 'Assistant Coach');
+    await page.click('#tm-save');
+    await sleep(120);
+  }
+  const coachRow = () => page.evaluate(() => {
+    const s = [...document.querySelectorAll('#team-cards .team-sec')].find(x => x.querySelector('h2').textContent === 'Coaches');
+    const g = s.querySelector('.bbgrid'), cards = [...g.children];
+    const l = Math.min(...cards.map(c => c.getBoundingClientRect().left));
+    const r = Math.max(...cards.map(c => c.getBoundingClientRect().right));
+    const gb = g.getBoundingClientRect();
+    return {
+      names: cards.map(c => c.querySelector('.nm').textContent),
+      off: Math.abs((l + r) / 2 - (gb.left + gb.right) / 2),   // row centre vs container centre
+      slack: gb.width - (r - l),                                // proves there IS spare room
+      plates: cards.map(c => Math.round(c.querySelector('.nm').getBoundingClientRect().height)),
+      wraps: cards.map(c => c.querySelector('.nm').getBoundingClientRect().height > 40),
+    };
+  });
+  const cr = await coachRow();
+  ok('head coach sits in the middle of the coaches row',
+    cr.names.length === 3 && cr.names[1] === 'Mike Cavanaugh', cr.names.join(' | '));
+  ok('coaches row is centred, with spare room on both sides (not just a full row)',
+    cr.off <= 2 && cr.slack > 40, JSON.stringify({ off: +cr.off.toFixed(1), slack: +cr.slack.toFixed(1) }));
+  ok('name plates are uniform height even when a long name wraps',
+    new Set(cr.plates).size === 1 && cr.wraps.some(Boolean), JSON.stringify(cr.plates));
+
   await page.click('#tm-reset');
   await sleep(150);
   ok('discard local edits returns to the starter cards', /Tierney/.test(await page.$eval('#team-cards', e => e.textContent)));
