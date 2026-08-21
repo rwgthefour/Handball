@@ -61,6 +61,7 @@ const GK_NONE = '(no keeper credited)';   // ONE sentinel everywhere: live table
 let roster = lsGet(LS.roster, []);          // [{id,num,name,pos,year,active}]
 let game   = lsGet(LS.cur, null);           // live game or null
 let archived = lsGet(LS.games, []);         // finished games (full record)
+for (const p of roster) if (p.num === 0) p.num = null;   // legacy: a blank No cell imported as 0
 let seasonImports = [];                     // games parsed from imported files (this session)
 
 // migrate any pre-timestamp clock shape {sec,running} -> {base,at}
@@ -186,13 +187,80 @@ function shotOutcome(e) {
 }
 
 /* ---------- roster ---------- */
+/* ---------- profiles: the stat roster is drawn from the team cards ----------
+   A roster row carries the CARD's exact name, so every event it records
+   aggregates onto that profile and the card can show the player's stats.
+   Cadet class -> graduation year: C1C are firsties, so the whole ladder
+   shifts by one every academic year — change CLASS_BASE_YEAR each May. */
+const CLASS_BASE_YEAR = 2027;                                   // C1C
+const CLASS_LADDER = ['C1C', 'C2C', 'C3C', 'C4C'];
+const classYearOf = cls => String(CLASS_BASE_YEAR + CLASS_LADDER.indexOf(cls));
+function classYearFor(name) {
+  const m = String(name || '').match(/\bC([1-4])C\b/i);
+  return m ? String(CLASS_BASE_YEAR + (+m[1] - 1)) : '';
+}
+const POS_FROM_CARD = [[/goal|keeper/i, 'GK'], [/left\s*wing/i, 'LW'], [/right\s*wing/i, 'RW'],
+  [/left\s*back/i, 'LB'], [/right\s*back/i, 'RB'], [/cent(er|re)\s*back/i, 'CB'], [/circle|pivot/i, 'P']];
+function posCodeFor(txt) {
+  for (const [re, code] of POS_FROM_CARD) if (re.test(txt || '')) return code;
+  return 'CB';
+}
+function cardProfiles() { return activeTeam().cards.filter(c => c.sec !== 'coach'); }
+/* keep every roster row pointing at its card: heal by name when ids move
+   (a republished team.json regenerates nothing, but a hand-built row links
+   itself the moment its name matches a card) */
+function linkRosterToCards() {
+  const profs = cardProfiles(); let changed = false;
+  for (const p of roster) {
+    if (p.cardId && profs.some(c => c.id === p.cardId)) continue;
+    const m = profs.find(c => nameKey(c.name) === nameKey(p.name));
+    const id = m ? m.id : null;
+    if (p.cardId !== id) { p.cardId = id; changed = true; }
+    if (m && p.name !== m.name) { p.name = m.name; changed = true; }   // the card spells it
+  }
+  if (changed) lsSet(LS.roster, roster);
+}
+function fillYearPicker(sel, val) {
+  sel.textContent = '';
+  sel.appendChild(el('option', { value: '', text: '—' }));
+  for (const cls of CLASS_LADDER) sel.appendChild(el('option', { value: classYearOf(cls), text: classYearOf(cls) + ' · ' + cls }));
+  if (val && !CLASS_LADDER.some(c => classYearOf(c) === String(val)))
+    sel.appendChild(el('option', { value: String(val), text: String(val) }));
+  sel.value = val ? String(val) : '';
+}
+function fillCardPicker() {
+  const sel = $('#r-card'); if (!sel) return;
+  const keep = sel.value;
+  sel.textContent = '';
+  sel.appendChild(el('option', { value: '', text: '— pick from the team cards —' }));
+  const taken = new Set(roster.map(p => p.cardId).filter(Boolean));
+  const takenNames = new Set(roster.map(p => nameKey(p.name)));
+  let free = 0;
+  for (const c of cardProfiles()) {
+    if (taken.has(c.id) || takenNames.has(nameKey(c.name))) continue;     // already on the stat roster
+    sel.appendChild(el('option', { value: c.id, text: c.name + (c.pos ? ' · ' + c.pos : '') }));
+    free++;
+  }
+  if (!free) sel.appendChild(el('option', { value: '', text: '(every card is already on the roster)', disabled: 'disabled' }));
+  sel.appendChild(el('option', { value: '_other', text: '— someone without a card —' }));
+  if ([...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+
 function dressed() { return roster.filter(p => p.active !== false); }
-function saveRoster() { lsSet(LS.roster, roster); }
+function saveRoster() {
+  lsSet(LS.roster, roster);
+  // the cards sit above this list on the same page and carry the stat strip,
+  // so a roster change has to repaint them (linkRosterToCards writes straight
+  // to storage instead of calling this, which is what keeps render loop-free)
+  if (typeof renderTeamCards === 'function' && $('#team-cards')) renderTeamCards();
+}
 function snapOf(p) { return { pid: p.id, num: p.num, name: p.name, pos: p.pos, year: p.year || '' }; }
 function snapByPid(pid) { return game ? game.rosterSnap.find(x => x.pid === pid) : null; }
 function cleanNum(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
 
 function renderRoster() {
+  linkRosterToCards(); fillCardPicker();
+  const yr = $('#r-year'); if (yr && !yr.options.length) fillYearPicker(yr, '');
   const t = $('#roster-table'); t.textContent = '';
   const thr = el('tr');
   for (const h of ['#', 'Name', 'Position', 'Class', 'Dressed', '']) thr.appendChild(el('th', { text: h, cls: h === 'Name' ? 'l' : '' }));
@@ -202,20 +270,29 @@ function renderRoster() {
     const tr = el('tr');
     const numIn = el('input', { cls: 'num-in', type: 'number', value: p.num ?? '' });
     numIn.addEventListener('change', () => { p.num = cleanNum(numIn.value === '' ? null : numIn.value); saveRoster(); renderRoster(); refreshGameUI(); });
-    const nameIn = el('input', { value: p.name });
-    nameIn.addEventListener('change', () => { p.name = nameIn.value.trim() || p.name; saveRoster(); renderRoster(); refreshGameUI(); });
+    const linked = cardProfiles().find(c => c.id === p.cardId);
+    let nameCell;
+    if (linked) {                       // linked rows are not free-text: the name IS the profile key
+      nameCell = el('span', { title: 'Linked to this player\'s team card — game stats attach to that profile' },
+        el('span', { cls: 'nmtxt', text: linked.name }), el('span', { cls: 'lk', text: '  ◆ CARD' }));
+    } else {
+      const nameIn = el('input', { value: p.name });
+      nameIn.addEventListener('change', () => { p.name = nameIn.value.trim() || p.name; saveRoster(); renderRoster(); refreshGameUI(); });
+      nameCell = nameIn;
+    }
     const posSel = el('select');
     for (const o of ['GK', 'LW', 'LB', 'CB', 'RB', 'RW', 'P']) posSel.appendChild(el('option', { text: o, value: o }));
     posSel.value = p.pos || 'CB';
     posSel.addEventListener('change', () => { p.pos = posSel.value; saveRoster(); renderRoster(); refreshGameUI(); });
-    const yrIn = el('input', { value: p.year || '', style: 'width:70px' });
-    yrIn.addEventListener('change', () => { p.year = yrIn.value.trim(); saveRoster(); });
+    const yrIn = el('select', { style: 'width:112px' });
+    fillYearPicker(yrIn, p.year || '');
+    yrIn.addEventListener('change', () => { p.year = yrIn.value; saveRoster(); });
     const chk = el('input', { type: 'checkbox' }); chk.checked = p.active !== false;
     chk.addEventListener('change', () => { p.active = chk.checked; saveRoster(); refreshGameUI(); });
     const del = el('button', { cls: 'evx', text: '✕', title: 'Remove player',
       onclick: () => { roster = roster.filter(x => x !== p); saveRoster(); renderRoster(); refreshGameUI(); } });
     tr.appendChild(el('td', { cls: 'c' }, numIn));
-    tr.appendChild(el('td', { cls: 'l' }, nameIn));
+    tr.appendChild(el('td', { cls: 'l' }, nameCell));
     tr.appendChild(el('td', { cls: 'c' }, posSel));
     tr.appendChild(el('td', { cls: 'c' }, yrIn));
     tr.appendChild(el('td', { cls: 'c' }, chk));
@@ -227,15 +304,28 @@ function renderRoster() {
     t.appendChild(tr);
   }
 }
+$('#r-card').addEventListener('change', () => {
+  const v = $('#r-card').value;
+  $('#r-name-wrap').style.display = v === '_other' ? '' : 'none';
+  const c = cardProfiles().find(x => x.id === v);
+  if (!c) return;
+  $('#r-pos').value = posCodeFor(c.pos);            // the card's position, in roster codes
+  fillYearPicker($('#r-year'), classYearFor(c.name));
+});
 $('#btn-addplayer').addEventListener('click', () => {
+  const pick = $('#r-card').value;
+  const card = pick && pick !== '_other' ? cardProfiles().find(c => c.id === pick) : null;
   const num = $('#r-num').value === '' ? null : cleanNum($('#r-num').value);
-  const name = $('#r-name').value.trim();
-  if (!name) { toast('Enter a name'); return; }
+  const name = card ? card.name : $('#r-name').value.trim();
+  if (!name) { toast(pick === '_other' ? 'Enter a name' : 'Pick a player from the team cards'); return; }
+  if (roster.some(p => nameKey(p.name) === nameKey(name))) { toast(name + ' is already on the roster'); return; }
   if (num != null && roster.some(p => p.num === num)) { toast('#' + num + ' is already taken'); return; }
-  roster.push({ id: uid(), num, name, pos: $('#r-pos').value, year: $('#r-year').value.trim(), active: true });
+  roster.push({ id: uid(), cardId: card ? card.id : null, num, name,
+    pos: $('#r-pos').value, year: $('#r-year').value, active: true });
   saveRoster(); renderRoster(); refreshGameUI();
-  $('#r-num').value = ''; $('#r-name').value = ''; $('#r-year').value = '';
-  toast(name + ' added');
+  $('#r-num').value = ''; $('#r-name').value = ''; $('#r-card').value = '';
+  $('#r-name-wrap').style.display = 'none';
+  toast(name + ' added' + (card ? ' — stats will attach to their card' : ''));
 });
 $('#btn-clear-roster').addEventListener('click', () => {
   if (!confirm('Remove every player from the roster?')) return;
@@ -381,7 +471,19 @@ function cardPhotoSrc(c) {
   if (c.photo && typeof PHOTOS !== 'undefined' && PHOTOS && PHOTOS[c.photo]) return PHOTOS[c.photo];
   return null;
 }
-function bbCard(c) {
+/* Stats for the cards, indexed by profile name — one aggregation per render,
+   not one per card. A profile that is on the stat roster shows the strip even
+   at zero, so "this card collects stats" is visible before the first game. */
+function teamStatsIndex() {
+  try {
+    if (typeof seasonAgg !== 'function' || typeof allSeasonGames !== 'function') return null;
+    const a = seasonAgg(allSeasonGames());
+    return { P: new Map(a.P.map(x => [nameKey(x.name), x])),
+             K: new Map(a.K.map(x => [nameKey(x.name), x])),
+             onRoster: new Set(roster.map(p => nameKey(p.name))) };
+  } catch (e) { return null; }
+}
+function bbCard(c, idx) {
   const ph = el('div', { cls: 'ph' });
   const src = cardPhotoSrc(c);
   if (src) ph.appendChild(el('img', { src, alt: c.name }));
@@ -400,6 +502,20 @@ function bbCard(c) {
       fields.appendChild(el('div', { cls: 'fr' }, el('span', { cls: 'fl', text: k }), el('span', { cls: 'fv', text: v })));
     frame.appendChild(fields);
   }
+  const k = nameKey(c.name);
+  const sp = idx && idx.P.get(k), sk = idx && idx.K.get(k);
+  if (sp || sk || (idx && idx.onRoster.has(k))) {
+    const strip = el('div', { cls: 'cstats' });
+    const stat = (lab, val) => strip.appendChild(el('div', {},
+      el('div', { cls: 'v', text: String(val) }), el('div', { cls: 'l', text: lab })));
+    if (sk && sk.faced) {                       // a keeper reads as a keeper
+      stat('GP', sk.gp); stat('SAVES', sk.sv);
+      stat('SV%', ((sk.sv + sk.ga) ? Math.round(100 * sk.sv / (sk.sv + sk.ga)) : 0) + '%');
+    } else {
+      stat('GP', sp ? sp.gp : 0); stat('GOALS', sp ? sp.goals : 0); stat('ASSISTS', sp ? sp.ast : 0);
+    }
+    frame.appendChild(strip);
+  }
   return el('div', { cls: 'bbcard' }, frame);
 }
 /* The head coach sits in the MIDDLE of the coaches row; the assistants keep
@@ -415,11 +531,12 @@ function centerLead(list, isLead) {
 function renderTeamCards() {
   const host = $('#team-cards'); host.textContent = '';
   const cards = activeTeam().cards;
+  const idx = teamStatsIndex();
   const sec = (title, list) => {
     if (!list.length) return;
     const s = el('div', { cls: 'team-sec' }, el('h2', { text: title }));
     const g = el('div', { cls: 'bbgrid' });
-    for (const c of list) g.appendChild(bbCard(c));
+    for (const c of list) g.appendChild(bbCard(c, idx));
     s.appendChild(g); host.appendChild(s);
   };
   sec('Coaches', centerLead(cards.filter(c => c.sec === 'coach'), c => /head/i.test(c.role || '')));

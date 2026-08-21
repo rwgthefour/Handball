@@ -191,7 +191,8 @@ function parseRosterRows(rows) {
   const out = [];
   for (const r of rows.slice(1)) {
     if (!r || cName < 0 || !String(r[cName] ?? '').trim()) continue;
-    const n = Number(r[cNo]);
+    const rawNo = String(r[cNo] ?? '').trim();
+    const n = rawNo === '' ? NaN : Number(rawNo);      // a blank cell is NO number, not #0
     out.push({ id: uid(), num: Number.isFinite(n) ? n : null, name: String(r[cName]).trim(),
       pos: String(r[cPos] || 'CB').trim(), year: String((cClass >= 0 && r[cClass]) || '').trim(),
       active: String((cDr >= 0 && r[cDr]) || 'Y').trim().toUpperCase() !== 'N' });
@@ -428,6 +429,7 @@ async function loadRepoGames() {
   const s = $('#repo-status');
   if (s) s.textContent = repoGames.length ? ('⛁ ' + repoGames.length + ' game(s) loaded automatically from the team GitHub repo.') : '';
   if ($('#tab-season').classList.contains('on')) renderSeason();
+  renderTeamCards();      // the cards carry season stats, so they follow the data
   renderHome();
 }
 async function loadRepoTeam() {

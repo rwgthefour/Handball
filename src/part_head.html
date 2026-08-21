@@ -129,6 +129,13 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .bbcard .fields .fr:last-child{border-bottom:none}
 .bbcard .fields .fl{color:var(--ink-mut);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:2px}
 .bbcard .fields .fv{color:var(--ink);font-weight:650;text-align:right}
+.bbcard .cstats{display:flex;margin-top:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22)}
+.bbcard .cstats>div{flex:1;text-align:center;padding:7px 2px;border-right:1px solid rgba(255,255,255,.18)}
+.bbcard .cstats>div:last-child{border-right:none}
+.bbcard .cstats .v{color:#f0d488;font-weight:800;font-size:17px;line-height:1.1;font-variant-numeric:tabular-nums}
+.bbcard .cstats .l{color:#b9c6e8;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.rtable .lk{color:var(--afa-blue);font-size:10px;letter-spacing:.08em;font-weight:700;white-space:nowrap}
+.rtable .nmtxt{font-weight:650}
 #tm-list .tmrow{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
 #tm-list .tmrow .sec{font-size:10px;letter-spacing:.1em;color:var(--ink-mut);font-weight:700;width:52px}
 #tm-list .tmrow b{flex:1;min-width:140px}
@@ -623,7 +630,10 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
     <h2 class="tgl" id="mroster-toggle">Stat roster — jersey numbers &amp; dressed list <span id="mroster-arrow">▸</span></h2>
     <div id="mroster-body">
     <details class="help"><summary>How this works</summary><div class="bd">
-      This list is what the GAME page tracks against. Add every cadet once — number, name, position
+      This list is what the GAME page tracks against. Pick each cadet from the <b>team cards</b> so
+      their game stats attach to their profile — position and class year fill themselves in
+      (C1C 2027, C2C 2028, C3C 2029, C4C 2030), and you only add the jersey number. Anyone without
+      a card can still be added by name. Add every cadet once — number, name, position
       (<b>GK</b> marks goalkeepers). It is saved in this browser and reused every game; if the team
       repo carries a roster file it loads automatically the first time. Untick <b>Dressed</b> for
       anyone not playing today and they stay off the game screen. Edits here are live; click a cell
@@ -631,10 +641,12 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
     </div></details>
     <div class="row" style="margin-bottom:12px">
       <div class="fld"><label>#</label><input type="number" id="r-num" min="1" max="99" style="width:70px"></div>
-      <div class="fld"><label>Name</label><input id="r-name" placeholder="Last, First  or  First Last" style="width:230px"></div>
+      <div class="fld"><label>Player</label><select id="r-card" style="width:250px"></select></div>
+      <div class="fld" id="r-name-wrap" style="display:none"><label>Name</label>
+        <input id="r-name" placeholder="Last, First  or  First Last" style="width:200px"></div>
       <div class="fld"><label>Position</label>
         <select id="r-pos"><option>GK</option><option>LW</option><option>LB</option><option>CB</option><option>RB</option><option>RW</option><option>P</option></select></div>
-      <div class="fld"><label>Class year</label><input id="r-year" placeholder="2027" style="width:80px"></div>
+      <div class="fld"><label>Class year</label><select id="r-year" style="width:120px"></select></div>
       <button class="btn pri" id="btn-addplayer">ADD PLAYER</button>
       <div class="spacer"></div>
       <button class="btn" id="btn-roster-export">⬇ SAVE ROSTER (.xlsx)</button>

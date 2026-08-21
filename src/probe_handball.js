@@ -249,9 +249,39 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await page.click('#btn-demo-roster');
   ok('sample roster renders 12 players', await page.$$eval('#roster-table tr', r => r.length) === 13);
   // add a player through the form
+  await page.selectOption('#r-card', '_other');
   await page.fill('#r-num', '99'); await page.fill('#r-name', "O'Malley, Test");
   await page.click('#btn-addplayer');
-  ok('form-added player appears', await page.$$eval('#roster-table tr', r => r.length) === 14);
+  ok('a player without a card can still be added by name', await page.$$eval('#roster-table tr', r => r.length) === 14);
+
+  console.log('— roster rows are team-card profiles —');
+  const yrOpts = await page.$$eval('#r-year option', o => o.map(x => x.textContent));
+  ok('class year is a dropdown reading 2027·C1C … 2030·C4C',
+    JSON.stringify(yrOpts) === JSON.stringify(['—', '2027 · C1C', '2028 · C2C', '2029 · C3C', '2030 · C4C']), yrOpts.join(' | '));
+  const cardOpts = await page.$$eval('#r-card option', o => o.map(x => x.textContent));
+  ok('the player picker lists the team cards (captain among them)',
+    cardOpts.some(t => /C1C Jack P\. Tierney/.test(t)) && cardOpts.some(t => /without a card/.test(t)), cardOpts.join(' | '));
+  await page.selectOption('#r-card', { label: 'C1C Jack P. Tierney · Center Back' });
+  const auto = await page.evaluate(() => ({ pos: document.getElementById('r-pos').value, yr: document.getElementById('r-year').value }));
+  ok('picking a card fills position and class year from the profile',
+    auto.pos === 'CB' && auto.yr === '2027', JSON.stringify(auto));
+  await page.fill('#r-num', '77');          // 7 belongs to the demo roster's Jack
+  await page.click('#btn-addplayer');
+  await sleep(150);
+  const linkedRow = await page.$$eval('#roster-table tr', rows => {
+    for (const r of rows) if (r.textContent.includes('Tierney')) return r.textContent.replace(/\s+/g, ' ').trim();
+    return null; });
+  ok('the linked row carries the card name and is marked as a card profile',
+    linkedRow && /C1C Jack P\. Tierney/.test(linkedRow) && /◆ CARD/.test(linkedRow), linkedRow);
+  ok('a card already on the roster drops out of the picker',
+    !(await page.$$eval('#r-card option', o => o.map(x => x.textContent))).some(t => /Tierney/.test(t)));
+  await page.evaluate(() => {                     // leave the game sections their demo roster
+    const r = JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]');
+    localStorage.setItem('afahb.roster.v1', JSON.stringify(r.filter(p => !/Tierney/.test(p.name))));
+  });
+  await page.reload();
+  await goTab(page, 'roster');
+  if (await page.$eval('#manage-roster-card', e => e.classList.contains('collapsed'))) await page.click('#mroster-toggle');
 
   console.log('— start game —');
   await goTab(page, 'game');
@@ -530,6 +560,7 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await unlockAdmin(p4);
   await openRosterMgmt(p4);
   await p4.click('#btn-demo-roster');
+  await p4.selectOption('#r-card', '_other');
   await p4.fill('#r-name', 'Walk-on Nonum');            // no jersey number
   await p4.click('#btn-addplayer');
   await goTab(p4, 'game');
@@ -538,6 +569,46 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   const hint = await p4.$eval('#setup-hint', e => e.textContent);
   ok('numberless dressed player blocks the start, naming them',
     /Walk-on Nonum/.test(hint) && await p4.$eval('#scoreboard', e => getComputedStyle(e).display) === 'none', hint);
+  console.log('— stats attach to the profile: card-linked player -> his card —');
+  const ctxP = await browser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 950 } });
+  const pp = await ctxP.newPage();
+  const ppErr = []; pp.on('pageerror', e => ppErr.push(String(e)));
+  pp.on('dialog', d => d.accept());
+  pp.on('download', d => d.saveAs(path.join(SCRATCH, 'out_profile_game.xlsx')).catch(() => {}));
+  await pp.goto(PAGE);
+  await pp.evaluate(() => localStorage.clear());
+  await pp.reload();
+  await unlockAdmin(pp);
+  await openRosterMgmt(pp);
+  await pp.selectOption('#r-card', { label: 'C1C Jack P. Tierney · Center Back' });
+  await pp.fill('#r-num', '7');
+  await pp.click('#btn-addplayer');
+  await sleep(150);
+  const readStrip = pg => pg.evaluate(() => {
+    const c = [...document.querySelectorAll('#team-cards .bbcard')].find(x => x.textContent.includes('Tierney'));
+    const st = c && c.querySelector('.cstats');
+    return st ? [...st.children].map(d => d.querySelector('.l').textContent + '=' + d.querySelector('.v').textContent) : null;
+  });
+  const preStrip = await readStrip(pp);
+  ok('adding a profile to the stat roster puts a stat strip on his card at once',
+    JSON.stringify(preStrip) === JSON.stringify(['GP=0', 'GOALS=0', 'ASSISTS=0']), JSON.stringify(preStrip));
+  await goTab(pp, 'game');
+  await pp.fill('#g-opp', 'Navy');
+  await pp.click('#btn-start');
+  await pp.waitForSelector('#scoreboard', { state: 'visible' });
+  await pp.click('.pcard[data-num="7"] button[data-ev="goal"]');
+  await pp.click('.pcard[data-num="7"] button[data-ev="goal"]');
+  await pp.click('.pcard[data-num="7"] button[data-ev="ast"]');
+  await pp.click('#btn-endgame');
+  await sleep(900);
+  await goTab(pp, 'roster');
+  await sleep(300);
+  const postStrip = await readStrip(pp);
+  ok('after the game his card carries GP 1, GOALS 2, ASSISTS 1',
+    JSON.stringify(postStrip) === JSON.stringify(['GP=1', 'GOALS=2', 'ASSISTS=1']), JSON.stringify(postStrip));
+  ok('no page errors while stats attach', ppErr.length === 0, ppErr.join(' | '));
+  await ctxP.close();
+
   console.log('— hosted from the repo: data auto-loads for visitors —');
   // the runner starts `python3 -m http.server 8123 --bind 127.0.0.1` in the repo
   // root before this probe and kills it after (spawning it from inside Node is
