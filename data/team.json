@@ -1,6 +1,6 @@
 {
  "v": 1,
- "ts": 1787341502442,
+ "ts": 1787341874726,
  "cards": [
   {
    "id": "c-cav",
@@ -48,11 +48,11 @@
    "role": "CIC",
    "badge": false,
    "photo": "",
-   "sq": "",
-   "pos": "",
-   "home": "",
-   "major": "",
-   "career": ""
+   "sq": "CS-19",
+   "pos": "Left Wing",
+   "home": "San Antonio, TX",
+   "major": "Aeronautical Engineering",
+   "career": "Developmental Engineer, Aeronautical"
   },
   {
    "id": "mspjij1uz6de9v",
