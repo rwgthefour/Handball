@@ -81,7 +81,7 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   ok('old top strip is gone', await page.$$eval('body > .cui', n => n.length) === 0);
   ok('menu closed until ☰ pressed', await page.$eval('#menu', m => !m.classList.contains('open')));
   ok('DONATE link in the menu opens the USAFA giving page in a new tab', await page.$eval('#menu-donate', a =>
-    a.href === 'https://give.usafa.org/campaigns/43504/donations/new?a=8618228' && a.target === '_blank' && a.rel.includes('noopener')));
+    a.href === 'https://give.usafa.org/schools/UnitedStatesAirForceAcademy/falcon-funder/pages/usafa-team-handball-club/?a=1' && a.target === '_blank' && a.rel.includes('noopener')));
   ok('team photo renders on the landing page', await page.evaluate(() => {
     const i = document.getElementById('home-team-photo');
     return !!i && i.naturalWidth === 1200 && getComputedStyle(i).display !== 'none';
