@@ -579,6 +579,20 @@ const pidOf = num => _probePage.evaluate(n => {
     stream.shown && stream.n === 1 && /vs Army/.test(stream.first) && /3–3/.test(stream.first) && /Top: Jack/.test(stream.first), JSON.stringify(stream));
   await page.click('#home-stream .gcard');
   ok('a stream card opens the season page', await page.$eval('#tab-season', e => e.classList.contains('on')));
+  await goTab(page, 'home');
+  await sleep(250);
+  const recap = await page.evaluate(() => ({
+    shown: getComputedStyle(document.getElementById('home-recap')).display !== 'none',
+    paras: [...document.querySelectorAll('#home-recap p')].map(x => x.textContent),
+    below: (() => {                      // it belongs under the intro, not above it
+      const a = document.querySelector('.home-about'), r = document.getElementById('home-recap');
+      return !!(a && r) && (a.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    })(),
+  }));
+  ok('the landing page carries a three-paragraph match report, below the intro',
+    recap.shown && recap.paras.length === 3 && recap.below, JSON.stringify({ n: recap.paras.length, below: recap.below }));
+  ok('the report is written from the game that was just played',
+    /Air Force drew with Army 3–3/.test(recap.paras[0]) && /Jack/.test(recap.paras[1]), recap.paras[0]);
 
   console.log('— season: local + legacy import —');
   await goTab(page, 'season');

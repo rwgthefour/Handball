@@ -361,6 +361,83 @@ function renderGameLog(games) {
      { lab: 'Result' }, { lab: 'Score' }, { lab: 'Top scorer', l: 1 }, { lab: 'Source', l: 1 }],
     rows.length ? rows : [{ cells: ['No games yet', '', '', '', '', '', '', ''] }]);
 }
+/* ---------- the match report ----------
+   Three paragraphs written from the game's own numbers, so every game
+   published gets a recap without anyone typing one. Every clause is guarded:
+   a thin record (an old workbook with no shot counts) simply says less. */
+function fmtGameDate(d) {
+  if (!d) return '';
+  const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return String(d);
+  const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return (+m[3]) + ' ' + MON[+m[2] - 1] + ' ' + m[1];
+}
+const joinList = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+function gameRecap(g) {
+  if (!g) return [];
+  const P = g.players.slice().sort((a, b) => b.goals - a.goals || b.ast - a.ast);
+  const K = g.keepers.filter(k => k.faced > 0 && nameKey(k.name) !== nameKey(GK_NONE))
+    .sort((a, b) => b.faced - a.faced);
+  const sum = f => P.reduce((s, p) => s + (p[f] || 0), 0);
+  const goals = sum('goals'), shots = sum('shots'), asts = sum('ast');
+  const m7 = sum('g7'), a7 = m7 + sum('x7'), tos = sum('to'), stls = sum('stl'), blks = sum('blk'), p2 = sum('p2');
+  const margin = Math.abs(g.us - g.them);
+  const verb = g.result === 'W' ? 'beat' : g.result === 'L' ? 'lost to' : 'drew with';
+  const where = g.ha === 'Home' ? ' at home' : g.ha === 'Away' ? ' on the road' : '';
+  const when = fmtGameDate(g.date);
+
+  // 1 — the result
+  const COMP_PHRASE = { 'Regular season': 'in a regular-season game', 'Tournament': 'in a tournament game',
+    'Nationals': 'at nationals', 'Scrimmage': 'in a scrimmage', 'Exhibition': 'in an exhibition' };
+  const comp = g.comp ? (COMP_PHRASE[g.comp] || 'in the ' + g.comp.toLowerCase()) : '';
+  let p1 = 'Air Force ' + verb + ' ' + g.opponent + ' ' + g.us + '–' + g.them + where
+    + (comp ? ' ' + comp : '') + (when ? ' on ' + when : '') + '.';
+  const ht = /^\d+-\d+$/.test(g.ht || '') ? g.ht.split('-').map(Number) : null;
+  if (ht) p1 += ' The sides turned round at ' + ht[0] + '–' + ht[1]
+    + (ht[0] > ht[1] ? ', Air Force in front' : ht[0] < ht[1] ? ', Air Force chasing' : ', level');
+  if (ht) p1 += '.';
+  if (margin === 1) p1 += g.result === 'L' ? ' A one-goal game decided it.' : ' It came down to a single goal.';
+  else if (margin >= 8 && g.result !== 'T') p1 += ' It was not close in the end.';
+
+  // 2 — the attack
+  const scorers = P.filter(p => p.goals > 0);
+  const bits2 = [];
+  if (scorers.length) {
+    const lead = scorers[0];
+    const tied = scorers.filter(p => p.goals === lead.goals);
+    bits2.push(joinList(tied.map(p => p.name)) + (tied.length > 1 ? ' shared the scoring with ' : ' led the scoring with ')
+      + plural(lead.goals, 'goal') + (lead.shots ? ' from ' + plural(lead.shots, 'shot') : '') + '.');
+    const next = scorers.filter(p => p.goals < lead.goals).slice(0, 3);
+    if (next.length) bits2.push(joinList(next.map(p => p.name + ' (' + p.goals + ')')) + ' followed.');
+  } else bits2.push('The goals were shared around.');
+  if (shots) bits2.push('The team took ' + plural(shots, 'shot') + ' and scored ' + goals
+    + ', a shooting rate of ' + Math.round(100 * goals / shots) + ' per cent.');
+  if (asts) bits2.push('The passing produced ' + plural(asts, 'assist') + '.');
+  if (a7) bits2.push('From seven metres it was ' + m7 + ' of ' + a7 + '.');
+
+  // 3 — the other end
+  const bits3 = [];
+  if (K.length) {
+    const k = K[0];
+    const pct = (k.sv + k.ga) ? Math.round(100 * k.sv / (k.sv + k.ga)) : 0;
+    bits3.push('In goal, ' + k.name + ' faced ' + plural(k.faced, 'shot') + ' and made ' + plural(k.sv, 'save')
+      + ' — a save rate of ' + pct + ' per cent' + (k.savew ? ', plus ' + plural(k.savew, 'save') + ' after the whistle' : '') + '.');
+    if (K.length > 1) bits3.push(joinList(K.slice(1).map(x => x.name + ' (' + x.sv + ' of ' + x.faced + ')'))
+      + ' also took a turn between the posts.');
+    if (K.some(x => x.en)) bits3.push('Air Force played an empty net late; '
+      + plural(K.reduce((s, x) => s + (x.en || 0), 0), 'goal') + ' went in with the keeper out.');
+  }
+  const def = [];
+  if (stls) def.push(plural(stls, 'steal'));
+  if (blks) def.push(plural(blks, 'block'));
+  if (def.length) bits3.push('The defence produced ' + joinList(def) + '.');
+  if (tos) bits3.push('Air Force gave the ball away ' + plural(tos, 'time') + '.');
+  if (p2) bits3.push('The Falcons took ' + plural(p2, 'two-minute suspension') + '.');
+  if (!bits3.length) bits3.push('The rest of the record for this game was not tracked.');
+
+  return [p1, bits2.join(' '), bits3.join(' ')];
+}
 function topScorerOf(g) {
   let best = null;
   for (const p of g.players) if (!best || p.goals > best.goals) best = p;

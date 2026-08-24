@@ -459,8 +459,25 @@ function renderStream() {
       el('span', { cls: 'top', text: scorer === '—' ? '' : 'Top: ' + scorer })));
   }
 }
+/* The match report sits under the intro: what happened last time out, written
+   from the game's own numbers. */
+function renderRecap() {
+  const host = $('#home-recap'); if (!host) return;
+  host.textContent = '';
+  let g = null;
+  try { g = allSeasonGames().slice(-1)[0] || null; } catch (e) { g = null; }
+  const paras = (g && typeof gameRecap === 'function') ? gameRecap(g) : [];
+  if (!g || !paras.length) { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  const card = el('div', { cls: 'rc' },
+    el('h2', { text: 'Last time out' }),
+    el('div', { cls: 'rsub', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent
+      + (g.date ? ' · ' + g.date : '') + ' · ' + g.us + '–' + g.them }));
+  for (const p of paras) card.appendChild(el('p', { text: p }));
+  host.appendChild(card);
+}
 function renderHome() {
-  renderStream();
+  renderStream(); renderRecap();
   const r = $('#home-resume');
   if (game && !game.done) {
     const d = derive(game);

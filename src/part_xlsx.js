@@ -249,7 +249,8 @@ function normFromLive(g) {   // archived games -> season record
   }
   return { id: g.id, source: 'this browser', date: g.info.date, opponent: g.info.opponent,
     ha: g.info.ha, comp: g.info.comp, result: d.us > d.them ? 'W' : d.us < d.them ? 'L' : 'T',
-    us: d.us, them: d.them, players, keepers, est: false };
+    us: d.us, them: d.them, ht: d.halfScore.H1.us + '-' + d.halfScore.H1.them,
+    players, keepers, est: false };
 }
 
 function parseOurFormat(wb, fname) {
@@ -295,7 +296,7 @@ function parseOurFormat(wb, fname) {
   const date = normDate(info['Date']);
   const opponent = String(info['Opponent'] || '?');
   const id = String(info['Game ID'] || (opponent + '::' + (date || '') + '::' + h32s(JSON.stringify([players, keepers]))));
-  return [{ id, source: fname, date, opponent,
+  return [{ id, source: fname, date, opponent, ht: String(info['Halftime'] || ''),
     ha: String(info['Home/Away'] || ''), comp: String(info['Competition'] || ''),
     result: String(info['Result'] || ''), us: num0(info['Air Force goals']), them: num0(info['Opponent goals']),
     players, keepers, est: false }];
