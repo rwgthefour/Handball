@@ -231,8 +231,11 @@ let seasonFilter = { range: 'all', from: '', to: '', minMins: 0 };
 function filteredSeasonGames() {
   let g = allSeasonGames();
   if (seasonFilter.range === 'range') {
-    if (seasonFilter.from) g = g.filter(x => (x.date || '') >= seasonFilter.from);
-    if (seasonFilter.to) g = g.filter(x => (x.date || '') <= seasonFilter.to);
+    // a game with no date cannot be placed in a range — dropping it is honest,
+    // but silently keeping it (an empty date sorts BELOW any 'To') is not
+    if (seasonFilter.from || seasonFilter.to) g = g.filter(x => !!x.date);
+    if (seasonFilter.from) g = g.filter(x => x.date >= seasonFilter.from);
+    if (seasonFilter.to) g = g.filter(x => x.date <= seasonFilter.to);
   } else if (seasonFilter.range !== 'all') {
     g = g.slice(-Math.max(1, +seasonFilter.range || 1));
   }
@@ -254,9 +257,11 @@ function renderSeason() {
   const games = filteredSeasonGames();
   const total = allSeasonGames().length;
   const note = $('#sf-note');
-  if (note) note.textContent = games.length === total
-    ? total + ' game(s)'
-    : 'showing ' + games.length + ' of ' + total + ' games' + (seasonFilter.minMins ? ' · players with ' + seasonFilter.minMins + '+ minutes' : '');
+  const undated = allSeasonGames().filter(x => !x.date).length;
+  if (note) note.textContent = (games.length === total ? total + ' game(s)'
+    : 'showing ' + games.length + ' of ' + total + ' games')
+    + (seasonFilter.range === 'range' && undated ? ' · ' + undated + ' undated game(s) cannot be placed in a date range' : '')
+    + (seasonFilter.minMins ? ' · players with ' + seasonFilter.minMins + '+ minutes' : '');
   $('#season-count').textContent = games.length + ' game(s) in view · ' + archived.length + ' saved in this browser · ' + seasonImports.length + ' from files';
   renderTiles(games); renderCharts(games); renderGameLog(games);
   renderSeasonPlayers(games); renderSeasonGK(games); renderStorageList();
@@ -405,7 +410,10 @@ function renderSeasonPlayers(games) {
     }
     t.appendChild(tr);
   }
-  if (!rows.length) t.appendChild(el('tr', null, el('td', { text: 'No player data yet', cls: 'l' })));
+  if (!rows.length) t.appendChild(el('tr', null, el('td', { colspan: String(SP_COLS.length), cls: 'l',
+    text: !P.length ? 'No player data yet'
+      : seasonFilter.minMins ? 'No player reaches ' + seasonFilter.minMins + ' minutes in these games — games tracked before playing time was recorded carry no minutes.'
+      : 'No player data yet' })));
   host.appendChild(t);
 }
 const SK_COLS = [
@@ -482,10 +490,16 @@ $('#btn-season-export').addEventListener('click', () => {
     ['Goals for', gf], ['Goals against', ga], ['Goal differential', gf - ga],
     ['Goals for / game', +(gf / games.length).toFixed(2)],
     ['Goals against / game', +(ga / games.length).toFixed(2)],
+    ['Filter — games', seasonFilter.range === 'range'
+      ? ('date range ' + (seasonFilter.from || 'start') + ' to ' + (seasonFilter.to || 'now'))
+      : (seasonFilter.range === 'all' ? 'all games' : 'last ' + seasonFilter.range + ' games')],
+    ['Filter — minimum minutes', seasonFilter.minMins || 0],
   ];
   const wsS = XLSX.utils.aoa_to_sheet(sum); wsS['!cols'] = [{ wch: 26 }, { wch: 22 }];
   XLSX.utils.book_append_sheet(wb, wsS, 'Season Summary');
-  const { P, K } = seasonAgg(games);
+  const agg0 = seasonAgg(games);
+  // the report is what the screen says it is: the same minutes floor applies
+  const P = agg0.P.filter(p => (p.mins || 0) >= seasonFilter.minMins), K = agg0.K;
   const pAoa = [['No', 'Player', 'GP', 'Minutes', 'Goals', 'Shots', 'Shot %', 'Goals per Game', 'Assists', 'Steals', 'Blocks', 'Turnovers',
     "7's Drawn", "7's Made", "7's Missed", '2 Min', "2's Drawn", 'Yellow', 'Red', 'Points']];
   for (const p of P.slice().sort((a, b) => b.goals - a.goals))

@@ -257,7 +257,7 @@ function fillCardPicker() {
 function dressed() { return roster.filter(p => p.active !== false); }
 function saveRoster() {
   lsSet(LS.roster, roster);
-  gamePick = null; renderGamePick();          // the squad picker follows the roster
+  renderGamePick();          // the picker follows the roster WITHOUT losing the picks
   // the cards sit above this list on the same page and carry the stat strip,
   // so a roster change has to repaint them (linkRosterToCards writes straight
   // to storage instead of calling this, which is what keeps render loop-free)
@@ -825,6 +825,7 @@ $('#gal-reset').addEventListener('click', () => {
    Picked at creation rather than inherited from a standing Dressed list, so a
    travel squad or a scrimmage side is a decision made per game. */
 let gamePick = null;                    // Set of roster ids, null = everyone active
+let gamePickSeen = new Set();           // ids already offered, so an untick is not undone
 function gameRosterPick() {
   const active = roster.filter(p => p.active !== false);
   return gamePick ? active.filter(p => gamePick.has(p.id)) : active;
@@ -833,7 +834,8 @@ function renderGamePick() {
   const host = $('#g-roster'); if (!host) return;
   host.textContent = '';
   const active = roster.filter(p => p.active !== false).slice().sort((a, b) => (a.num ?? 999) - (b.num ?? 999));
-  if (gamePick == null) gamePick = new Set(active.map(p => p.id));
+  if (gamePick == null) { gamePick = new Set(active.map(p => p.id)); gamePickSeen = new Set(gamePick); }
+  for (const p of active) if (!gamePickSeen.has(p.id)) { gamePick.add(p.id); gamePickSeen.add(p.id); }
   for (const p of active) {
     const on = gamePick.has(p.id);
     const cb = el('input', { type: 'checkbox' }); cb.checked = on;
@@ -889,8 +891,8 @@ $('#btn-start').addEventListener('click', () => {
   }
   game = newGameFromForm();
   game.onCourt = startingSeven();
-  const gk = game.rosterSnap.find(p => p.pos === 'GK');
-  if (gk) game.gk = gk.pid;
+  const gk = game.rosterSnap.find(p => p.pos === 'GK' && game.onCourt.includes(p.pid));
+  game.gk = gk ? gk.pid : null;          // whoever is IN goal, not whoever is listed first
   saveGame(); enterLiveMode();
   toast('Game started — good luck, Falcons!');
 });
@@ -899,7 +901,14 @@ function saveGame() { if (game) lsSet(LS.cur, game); }
 function enterLiveMode() {
   if (!game.onCourt) game.onCourt = startingSeven();     // resumed from before playing time
   if (!game.mins) game.mins = {};
-  if (!game.courtSince) game.courtSince = {};
+  /* Open shifts do NOT survive a reload: their timestamps are wall-clock, so a
+     tab reopened the next morning would bank the whole night onto whoever was
+     on the court. The last partial shift is lost; inventing hours is worse. */
+  game.courtSince = {};
+  if (game.clock.at != null) {
+    if (clockShown() <= 0) { game.clock.base = halfLenSec(); game.clock.at = null; }   // it ran out while away
+    else openCourtIntervals();                                                          // still live: resume shifts
+  }
   $('#setup-card').style.display = 'none';
   $('#scoreboard').style.display = 'flex';
   $('#live-area').style.display = 'block';
@@ -909,7 +918,7 @@ function enterLiveMode() {
   refreshLive();
 }
 function exitLiveMode() {
-  gamePick = null; renderGamePick();          // next game picks its own squad
+  gamePick = null; gamePickSeen = new Set(); renderGamePick();   // next game picks its own squad
   $('#setup-card').style.display = 'block';
   $('#setup-card').classList.remove('collapsed');   // the next thing to do is set up a game
   $('#setup-arrow').textContent = '▾';
@@ -934,8 +943,12 @@ function addEvent(type, extra) {
   if (!game || game.done) return;
   const d = EV[type]; if (!d) return;
   const e = Object.assign({ id: uid(), seq: ++game.seq, type, half: game.half,
-    clock: fmtClock(clockShown()), sec: clockSec(), ts: new Date().toISOString() }, extra || {});
+    clock: clockText(), sec: clockSec(), ts: new Date().toISOString() }, extra || {});
   if (d.gk && e.gk === undefined) e.gk = game.gk;
+  // the fast path (the opponent panel) has no checkbox, so derive it: with no
+  // keeper on the court the goal went into an empty net whoever logged it
+  if ((type === 'ogoal' || type === 'og7') && e.float === undefined
+      && (e.gk == null || !isOnCourt(e.gk))) e.float = true;
   game.events.push(e);
   saveGame(); refreshLive();
   const who = d.pl && e.pid != null ? playerLabel(e.pid) + ' — ' : (d.team === 'OPP' ? game.info.opponent + ' — ' : '');
@@ -1003,8 +1016,31 @@ function buildBench(bench) {
       el('span', { text: p.name }),
       el('span', { cls: 'mn', text: fmtMins(minsOf(p.pid)) })));
   }
-  $('#bench-hint').textContent = bench.length ? '' : 'Everyone dressed is on the court.';
+  $('#bench-hint').textContent = bench.length ? '' : 'Everyone in this game is on the court.';
+  fillAddToGame();
 }
+/* The squad is fixed at creation, so a late arrival is added on purpose here —
+   never as a side effect of editing the roster mid-game. */
+function fillAddToGame() {
+  const sel = $('#add-to-game'); if (!sel || !game) return;
+  const inGame = new Set(game.rosterSnap.map(p => p.pid));
+  const spare = roster.filter(p => p.active !== false && !inGame.has(p.id));
+  sel.textContent = '';
+  for (const p of spare) sel.appendChild(el('option', { value: p.id,
+    text: (p.num != null ? '#' + p.num + ' ' : '') + p.name }));
+  const none = !spare.length;
+  sel.disabled = none; $('#btn-add-to-game').disabled = none;
+  if (none) sel.appendChild(el('option', { value: '', text: 'everyone is in this game' }));
+}
+$('#btn-add-to-game').addEventListener('click', () => {
+  const id = $('#add-to-game').value; if (!game || !id) return;
+  const p = roster.find(x => x.id === id); if (!p) return;
+  if (p.num == null) { toast(p.name + ' needs a jersey number first'); return; }
+  if (game.rosterSnap.some(x => x.num === p.num)) { toast('#' + p.num + ' is already in this game'); return; }
+  game.rosterSnap.push(snapOf(p));
+  saveGame(); buildPlayerGrid(); refreshLive();
+  toast(p.name + ' added to this game — send them on from the bench');
+});
 function buildGkSel() {
   const sel = $('#gk-sel'); sel.textContent = '';
   sel.appendChild(el('option', { value: '', text: '— no keeper credited —' }));
@@ -1059,6 +1095,14 @@ function subOut(pid) {
   if (!game || !isOnCourt(pid)) return;
   bankCourt(pid);
   game.onCourt = onCourt().filter(x => x !== pid);
+  if (game.gk === pid) {
+    // hand over to another keeper if one is on the floor; otherwise KEEP the
+    // keeper of record so the empty-net goals still show on their line — the
+    // float rule below charges them as EN, never as goals allowed
+    const other = game.rosterSnap.find(p => p.pos === 'GK' && isOnCourt(p.pid));
+    if (other) { game.gk = other.pid; buildGkSel(); toast('Keeper of record: ' + other.name); }
+    else toast('Keeper pulled — goals against are marked EMPTY NET');
+  }
   addEvent('subout', { pid });
   buildPlayerGrid(); refreshLive();
 }
@@ -1095,15 +1139,29 @@ function clockSec() {                       // elapsed — the internal, always-
 /* The scoreboard counts DOWN, the way a hall clock does, and events are stamped
    with the time REMAINING. Elapsed stays the internal quantity so playing time
    and the running clock cannot disagree. */
-function halfLenSec() { return Math.max(1, (game && game.info.halfLen ? game.info.halfLen : 30)) * 60; }
+const PERIOD_MIN = { OT1: 5, OT2: 5, SO: 0 };      // overtime is not a half; a shoot-out has no clock
+function halfLenSec() {
+  const h = game && game.half;
+  if (h && PERIOD_MIN[h] != null) return PERIOD_MIN[h] * 60;
+  return Math.max(1, (game && game.info.halfLen ? game.info.halfLen : 30)) * 60;
+}
 function clockShown() { return Math.max(0, halfLenSec() - clockSec()); }
+const noClock = () => !!game && game.half === 'SO';
+function clockText() { return noClock() ? '—:—' : fmtClock(clockShown()); }
 let clockTimer = null;
 function stopClockTimer() { if (clockTimer) { clearInterval(clockTimer); clockTimer = null; } }
 function startClockTicker() {
   stopClockTimer();
   clockTimer = setInterval(() => {
     const w = $('#sb-clock');
-    if (game && !w.querySelector('input')) w.textContent = fmtClock(clockShown());
+    if (game && !w.querySelector('input')) w.textContent = clockText();
+    // a period that has run out stops itself: a pinned 00:00 on a still-running
+    // clock is indistinguishable from a stopped one, and every second after it
+    // was being banked as playing time
+    if (game && game.clock.at != null && !noClock() && clockShown() <= 0) {
+      setClockRunning(false);
+      toast('Time — the period clock has run out');
+    }
     paintMinutes();
   }, 500);
 }
@@ -1130,7 +1188,7 @@ $('#btn-clock').addEventListener('click', () => setClockRunning(game.clock.at ==
 $('#sb-clock').addEventListener('click', () => {
   const wrap = $('#sb-clock');
   if (wrap.querySelector('input')) return;         // already editing
-  const cur = fmtClock(clockShown());
+  const cur = noClock() ? '00:00' : fmtClock(clockShown());
   const inp = el('input', { value: cur, style: 'width:74px;font-size:18px;text-align:center' });
   wrap.textContent = ''; wrap.appendChild(inp); inp.focus(); inp.select();
   const commit = () => {
@@ -1142,7 +1200,10 @@ $('#sb-clock').addEventListener('click', () => {
     saveGame(); refreshLive();
   };
   inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') inp.blur(); });
-  inp.addEventListener('blur', commit);
+  inp.addEventListener('blur', () => {
+    commit();
+    wrap.textContent = clockText();     // both repaint paths skip an element holding an input
+  });
 });
 
 /* ---------- goal map ---------- */
@@ -1323,7 +1384,7 @@ function refreshLive() {
   $('#sb-them-to').textContent = Math.max(0, 3 - d.team.toThem);
   $('#sb-opp-name').textContent = game.info.opponent.toUpperCase();
   const cw = $('#sb-clock');
-  if (!cw.querySelector('input')) cw.textContent = fmtClock(clockShown());
+  if (!cw.querySelector('input')) cw.textContent = clockText();
   $('#btn-clock').textContent = game.clock.at != null ? '❚❚ PAUSE CLOCK' : '▶ START CLOCK';
   $$('#sb-halves button').forEach(b => b.classList.toggle('on', b.textContent === game.half));
   // opponent logo
@@ -1372,7 +1433,9 @@ function renderLiveBox(d) {
   const rows = [];
   const tot = blankP();
   for (const p of game.rosterSnap) {
-    const raw = d.P.get(p.pid); if (!raw) continue;
+    // a starter who played the half and recorded nothing still played the half
+    const raw = d.P.get(p.pid) || (minsOf(p.pid) > 0 ? blankP() : null);
+    if (!raw) continue;
     for (const k in tot) tot[k] += raw[k];
     rows.push({ cells: pCells(pRow(p.num, p.name, p.pos, raw), minsOf(p.pid)) });
   }
@@ -1424,13 +1487,14 @@ function refreshGameUI() {
   if (game.gk != null) used.add(game.gk);
   // this game's squad was picked at creation: keep it, refresh the details, and
   // let a late arrival ticked as Dressed join the bench
+  // The squad was chosen when the game was created and STAYS chosen — a roster
+  // edit refreshes details only. Adding a late arrival is a deliberate act
+  // (＋ ADD TO GAME on the bench), never a side effect of fixing a jersey.
   const live = new Map(dressed().map(p => [p.id, p]));
-  const have = new Set(game.rosterSnap.map(p => p.pid));
   for (const p of game.rosterSnap) {
     const r = live.get(p.pid);
     if (r) { p.num = r.num; p.name = r.name; p.pos = r.pos; p.year = r.year || ''; }
   }
-  for (const [id, r] of live) if (!have.has(id)) game.rosterSnap.push(snapOf(r));
   saveGame();
   buildPlayerGrid(); buildGkSel(); refreshLive();
 }

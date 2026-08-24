@@ -137,7 +137,8 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .rtable .lk{color:var(--afa-blue);font-size:10px;letter-spacing:.08em;font-weight:700;white-space:nowrap}
 .rtable .nmtxt{font-weight:650}
 .bench{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
-.bench .bhead{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mut);font-weight:700;margin-bottom:7px}
+.bench .bhead{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mut);font-weight:700;
+  margin-bottom:7px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #bench-strip{display:flex;flex-wrap:wrap;gap:7px}
 .bchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--steel);background:#fbfcfe;
   padding:9px 12px;font-size:12.5px;font-weight:600;min-height:40px}
@@ -526,7 +527,11 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       <div class="pgrid" id="pgrid"></div>
       <div class="hint" id="pgrid-hint"></div>
       <div class="bench">
-        <div class="bhead">Bench <span class="muted small">— tap to send a player on</span></div>
+        <div class="bhead">Bench <span class="muted small">— tap to send a player on</span>
+          <span style="margin-left:auto;font-weight:400;text-transform:none;letter-spacing:0;display:flex;gap:6px">
+            <select id="add-to-game" style="border:1px solid var(--steel);padding:4px 6px;font-size:12px"></select>
+            <button class="btn" id="btn-add-to-game" style="padding:4px 10px;font-size:11px">＋ ADD TO GAME</button>
+          </span></div>
         <div id="bench-strip"></div>
         <div class="hint" id="bench-hint"></div>
       </div>
@@ -1111,7 +1116,7 @@ function fillCardPicker() {
 function dressed() { return roster.filter(p => p.active !== false); }
 function saveRoster() {
   lsSet(LS.roster, roster);
-  gamePick = null; renderGamePick();          // the squad picker follows the roster
+  renderGamePick();          // the picker follows the roster WITHOUT losing the picks
   // the cards sit above this list on the same page and carry the stat strip,
   // so a roster change has to repaint them (linkRosterToCards writes straight
   // to storage instead of calling this, which is what keeps render loop-free)
@@ -1679,6 +1684,7 @@ $('#gal-reset').addEventListener('click', () => {
    Picked at creation rather than inherited from a standing Dressed list, so a
    travel squad or a scrimmage side is a decision made per game. */
 let gamePick = null;                    // Set of roster ids, null = everyone active
+let gamePickSeen = new Set();           // ids already offered, so an untick is not undone
 function gameRosterPick() {
   const active = roster.filter(p => p.active !== false);
   return gamePick ? active.filter(p => gamePick.has(p.id)) : active;
@@ -1687,7 +1693,8 @@ function renderGamePick() {
   const host = $('#g-roster'); if (!host) return;
   host.textContent = '';
   const active = roster.filter(p => p.active !== false).slice().sort((a, b) => (a.num ?? 999) - (b.num ?? 999));
-  if (gamePick == null) gamePick = new Set(active.map(p => p.id));
+  if (gamePick == null) { gamePick = new Set(active.map(p => p.id)); gamePickSeen = new Set(gamePick); }
+  for (const p of active) if (!gamePickSeen.has(p.id)) { gamePick.add(p.id); gamePickSeen.add(p.id); }
   for (const p of active) {
     const on = gamePick.has(p.id);
     const cb = el('input', { type: 'checkbox' }); cb.checked = on;
@@ -1743,8 +1750,8 @@ $('#btn-start').addEventListener('click', () => {
   }
   game = newGameFromForm();
   game.onCourt = startingSeven();
-  const gk = game.rosterSnap.find(p => p.pos === 'GK');
-  if (gk) game.gk = gk.pid;
+  const gk = game.rosterSnap.find(p => p.pos === 'GK' && game.onCourt.includes(p.pid));
+  game.gk = gk ? gk.pid : null;          // whoever is IN goal, not whoever is listed first
   saveGame(); enterLiveMode();
   toast('Game started — good luck, Falcons!');
 });
@@ -1753,7 +1760,14 @@ function saveGame() { if (game) lsSet(LS.cur, game); }
 function enterLiveMode() {
   if (!game.onCourt) game.onCourt = startingSeven();     // resumed from before playing time
   if (!game.mins) game.mins = {};
-  if (!game.courtSince) game.courtSince = {};
+  /* Open shifts do NOT survive a reload: their timestamps are wall-clock, so a
+     tab reopened the next morning would bank the whole night onto whoever was
+     on the court. The last partial shift is lost; inventing hours is worse. */
+  game.courtSince = {};
+  if (game.clock.at != null) {
+    if (clockShown() <= 0) { game.clock.base = halfLenSec(); game.clock.at = null; }   // it ran out while away
+    else openCourtIntervals();                                                          // still live: resume shifts
+  }
   $('#setup-card').style.display = 'none';
   $('#scoreboard').style.display = 'flex';
   $('#live-area').style.display = 'block';
@@ -1763,7 +1777,7 @@ function enterLiveMode() {
   refreshLive();
 }
 function exitLiveMode() {
-  gamePick = null; renderGamePick();          // next game picks its own squad
+  gamePick = null; gamePickSeen = new Set(); renderGamePick();   // next game picks its own squad
   $('#setup-card').style.display = 'block';
   $('#setup-card').classList.remove('collapsed');   // the next thing to do is set up a game
   $('#setup-arrow').textContent = '▾';
@@ -1788,8 +1802,12 @@ function addEvent(type, extra) {
   if (!game || game.done) return;
   const d = EV[type]; if (!d) return;
   const e = Object.assign({ id: uid(), seq: ++game.seq, type, half: game.half,
-    clock: fmtClock(clockShown()), sec: clockSec(), ts: new Date().toISOString() }, extra || {});
+    clock: clockText(), sec: clockSec(), ts: new Date().toISOString() }, extra || {});
   if (d.gk && e.gk === undefined) e.gk = game.gk;
+  // the fast path (the opponent panel) has no checkbox, so derive it: with no
+  // keeper on the court the goal went into an empty net whoever logged it
+  if ((type === 'ogoal' || type === 'og7') && e.float === undefined
+      && (e.gk == null || !isOnCourt(e.gk))) e.float = true;
   game.events.push(e);
   saveGame(); refreshLive();
   const who = d.pl && e.pid != null ? playerLabel(e.pid) + ' — ' : (d.team === 'OPP' ? game.info.opponent + ' — ' : '');
@@ -1857,8 +1875,31 @@ function buildBench(bench) {
       el('span', { text: p.name }),
       el('span', { cls: 'mn', text: fmtMins(minsOf(p.pid)) })));
   }
-  $('#bench-hint').textContent = bench.length ? '' : 'Everyone dressed is on the court.';
+  $('#bench-hint').textContent = bench.length ? '' : 'Everyone in this game is on the court.';
+  fillAddToGame();
 }
+/* The squad is fixed at creation, so a late arrival is added on purpose here —
+   never as a side effect of editing the roster mid-game. */
+function fillAddToGame() {
+  const sel = $('#add-to-game'); if (!sel || !game) return;
+  const inGame = new Set(game.rosterSnap.map(p => p.pid));
+  const spare = roster.filter(p => p.active !== false && !inGame.has(p.id));
+  sel.textContent = '';
+  for (const p of spare) sel.appendChild(el('option', { value: p.id,
+    text: (p.num != null ? '#' + p.num + ' ' : '') + p.name }));
+  const none = !spare.length;
+  sel.disabled = none; $('#btn-add-to-game').disabled = none;
+  if (none) sel.appendChild(el('option', { value: '', text: 'everyone is in this game' }));
+}
+$('#btn-add-to-game').addEventListener('click', () => {
+  const id = $('#add-to-game').value; if (!game || !id) return;
+  const p = roster.find(x => x.id === id); if (!p) return;
+  if (p.num == null) { toast(p.name + ' needs a jersey number first'); return; }
+  if (game.rosterSnap.some(x => x.num === p.num)) { toast('#' + p.num + ' is already in this game'); return; }
+  game.rosterSnap.push(snapOf(p));
+  saveGame(); buildPlayerGrid(); refreshLive();
+  toast(p.name + ' added to this game — send them on from the bench');
+});
 function buildGkSel() {
   const sel = $('#gk-sel'); sel.textContent = '';
   sel.appendChild(el('option', { value: '', text: '— no keeper credited —' }));
@@ -1913,6 +1954,14 @@ function subOut(pid) {
   if (!game || !isOnCourt(pid)) return;
   bankCourt(pid);
   game.onCourt = onCourt().filter(x => x !== pid);
+  if (game.gk === pid) {
+    // hand over to another keeper if one is on the floor; otherwise KEEP the
+    // keeper of record so the empty-net goals still show on their line — the
+    // float rule below charges them as EN, never as goals allowed
+    const other = game.rosterSnap.find(p => p.pos === 'GK' && isOnCourt(p.pid));
+    if (other) { game.gk = other.pid; buildGkSel(); toast('Keeper of record: ' + other.name); }
+    else toast('Keeper pulled — goals against are marked EMPTY NET');
+  }
   addEvent('subout', { pid });
   buildPlayerGrid(); refreshLive();
 }
@@ -1949,15 +1998,29 @@ function clockSec() {                       // elapsed — the internal, always-
 /* The scoreboard counts DOWN, the way a hall clock does, and events are stamped
    with the time REMAINING. Elapsed stays the internal quantity so playing time
    and the running clock cannot disagree. */
-function halfLenSec() { return Math.max(1, (game && game.info.halfLen ? game.info.halfLen : 30)) * 60; }
+const PERIOD_MIN = { OT1: 5, OT2: 5, SO: 0 };      // overtime is not a half; a shoot-out has no clock
+function halfLenSec() {
+  const h = game && game.half;
+  if (h && PERIOD_MIN[h] != null) return PERIOD_MIN[h] * 60;
+  return Math.max(1, (game && game.info.halfLen ? game.info.halfLen : 30)) * 60;
+}
 function clockShown() { return Math.max(0, halfLenSec() - clockSec()); }
+const noClock = () => !!game && game.half === 'SO';
+function clockText() { return noClock() ? '—:—' : fmtClock(clockShown()); }
 let clockTimer = null;
 function stopClockTimer() { if (clockTimer) { clearInterval(clockTimer); clockTimer = null; } }
 function startClockTicker() {
   stopClockTimer();
   clockTimer = setInterval(() => {
     const w = $('#sb-clock');
-    if (game && !w.querySelector('input')) w.textContent = fmtClock(clockShown());
+    if (game && !w.querySelector('input')) w.textContent = clockText();
+    // a period that has run out stops itself: a pinned 00:00 on a still-running
+    // clock is indistinguishable from a stopped one, and every second after it
+    // was being banked as playing time
+    if (game && game.clock.at != null && !noClock() && clockShown() <= 0) {
+      setClockRunning(false);
+      toast('Time — the period clock has run out');
+    }
     paintMinutes();
   }, 500);
 }
@@ -1984,7 +2047,7 @@ $('#btn-clock').addEventListener('click', () => setClockRunning(game.clock.at ==
 $('#sb-clock').addEventListener('click', () => {
   const wrap = $('#sb-clock');
   if (wrap.querySelector('input')) return;         // already editing
-  const cur = fmtClock(clockShown());
+  const cur = noClock() ? '00:00' : fmtClock(clockShown());
   const inp = el('input', { value: cur, style: 'width:74px;font-size:18px;text-align:center' });
   wrap.textContent = ''; wrap.appendChild(inp); inp.focus(); inp.select();
   const commit = () => {
@@ -1996,7 +2059,10 @@ $('#sb-clock').addEventListener('click', () => {
     saveGame(); refreshLive();
   };
   inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') inp.blur(); });
-  inp.addEventListener('blur', commit);
+  inp.addEventListener('blur', () => {
+    commit();
+    wrap.textContent = clockText();     // both repaint paths skip an element holding an input
+  });
 });
 
 /* ---------- goal map ---------- */
@@ -2177,7 +2243,7 @@ function refreshLive() {
   $('#sb-them-to').textContent = Math.max(0, 3 - d.team.toThem);
   $('#sb-opp-name').textContent = game.info.opponent.toUpperCase();
   const cw = $('#sb-clock');
-  if (!cw.querySelector('input')) cw.textContent = fmtClock(clockShown());
+  if (!cw.querySelector('input')) cw.textContent = clockText();
   $('#btn-clock').textContent = game.clock.at != null ? '❚❚ PAUSE CLOCK' : '▶ START CLOCK';
   $$('#sb-halves button').forEach(b => b.classList.toggle('on', b.textContent === game.half));
   // opponent logo
@@ -2226,7 +2292,9 @@ function renderLiveBox(d) {
   const rows = [];
   const tot = blankP();
   for (const p of game.rosterSnap) {
-    const raw = d.P.get(p.pid); if (!raw) continue;
+    // a starter who played the half and recorded nothing still played the half
+    const raw = d.P.get(p.pid) || (minsOf(p.pid) > 0 ? blankP() : null);
+    if (!raw) continue;
     for (const k in tot) tot[k] += raw[k];
     rows.push({ cells: pCells(pRow(p.num, p.name, p.pos, raw), minsOf(p.pid)) });
   }
@@ -2278,13 +2346,14 @@ function refreshGameUI() {
   if (game.gk != null) used.add(game.gk);
   // this game's squad was picked at creation: keep it, refresh the details, and
   // let a late arrival ticked as Dressed join the bench
+  // The squad was chosen when the game was created and STAYS chosen — a roster
+  // edit refreshes details only. Adding a late arrival is a deliberate act
+  // (＋ ADD TO GAME on the bench), never a side effect of fixing a jersey.
   const live = new Map(dressed().map(p => [p.id, p]));
-  const have = new Set(game.rosterSnap.map(p => p.pid));
   for (const p of game.rosterSnap) {
     const r = live.get(p.pid);
     if (r) { p.num = r.num; p.name = r.name; p.pos = r.pos; p.year = r.year || ''; }
   }
-  for (const [id, r] of live) if (!have.has(id)) game.rosterSnap.push(snapOf(r));
   saveGame();
   buildPlayerGrid(); buildGkSel(); refreshLive();
 }
@@ -2555,7 +2624,10 @@ function normFromLive(g) {   // archived games -> season record
   const d = derive(g);
   const players = [], keepers = [];
   for (const p of g.rosterSnap) {
-    const raw = d.P.get(p.pid); if (!raw) continue;
+    // matches the box score and the export: minutes played is a record too, so
+    // the archived game and its own workbook cannot disagree about who played
+    const raw = d.P.get(p.pid) || (minsIn(g, p.pid) > 0 ? blankP() : null);
+    if (!raw) continue;
     const r = pRow(p.num, p.name, p.pos, raw);
     players.push({ name: p.name, num: p.num, mins: +(minsIn(g, p.pid) / 60).toFixed(2),
       goals: r.goals, shots: r.shots, ast: r.ast, stl: r.stl,
@@ -3040,8 +3112,11 @@ let seasonFilter = { range: 'all', from: '', to: '', minMins: 0 };
 function filteredSeasonGames() {
   let g = allSeasonGames();
   if (seasonFilter.range === 'range') {
-    if (seasonFilter.from) g = g.filter(x => (x.date || '') >= seasonFilter.from);
-    if (seasonFilter.to) g = g.filter(x => (x.date || '') <= seasonFilter.to);
+    // a game with no date cannot be placed in a range — dropping it is honest,
+    // but silently keeping it (an empty date sorts BELOW any 'To') is not
+    if (seasonFilter.from || seasonFilter.to) g = g.filter(x => !!x.date);
+    if (seasonFilter.from) g = g.filter(x => x.date >= seasonFilter.from);
+    if (seasonFilter.to) g = g.filter(x => x.date <= seasonFilter.to);
   } else if (seasonFilter.range !== 'all') {
     g = g.slice(-Math.max(1, +seasonFilter.range || 1));
   }
@@ -3063,9 +3138,11 @@ function renderSeason() {
   const games = filteredSeasonGames();
   const total = allSeasonGames().length;
   const note = $('#sf-note');
-  if (note) note.textContent = games.length === total
-    ? total + ' game(s)'
-    : 'showing ' + games.length + ' of ' + total + ' games' + (seasonFilter.minMins ? ' · players with ' + seasonFilter.minMins + '+ minutes' : '');
+  const undated = allSeasonGames().filter(x => !x.date).length;
+  if (note) note.textContent = (games.length === total ? total + ' game(s)'
+    : 'showing ' + games.length + ' of ' + total + ' games')
+    + (seasonFilter.range === 'range' && undated ? ' · ' + undated + ' undated game(s) cannot be placed in a date range' : '')
+    + (seasonFilter.minMins ? ' · players with ' + seasonFilter.minMins + '+ minutes' : '');
   $('#season-count').textContent = games.length + ' game(s) in view · ' + archived.length + ' saved in this browser · ' + seasonImports.length + ' from files';
   renderTiles(games); renderCharts(games); renderGameLog(games);
   renderSeasonPlayers(games); renderSeasonGK(games); renderStorageList();
@@ -3214,7 +3291,10 @@ function renderSeasonPlayers(games) {
     }
     t.appendChild(tr);
   }
-  if (!rows.length) t.appendChild(el('tr', null, el('td', { text: 'No player data yet', cls: 'l' })));
+  if (!rows.length) t.appendChild(el('tr', null, el('td', { colspan: String(SP_COLS.length), cls: 'l',
+    text: !P.length ? 'No player data yet'
+      : seasonFilter.minMins ? 'No player reaches ' + seasonFilter.minMins + ' minutes in these games — games tracked before playing time was recorded carry no minutes.'
+      : 'No player data yet' })));
   host.appendChild(t);
 }
 const SK_COLS = [
@@ -3291,10 +3371,16 @@ $('#btn-season-export').addEventListener('click', () => {
     ['Goals for', gf], ['Goals against', ga], ['Goal differential', gf - ga],
     ['Goals for / game', +(gf / games.length).toFixed(2)],
     ['Goals against / game', +(ga / games.length).toFixed(2)],
+    ['Filter — games', seasonFilter.range === 'range'
+      ? ('date range ' + (seasonFilter.from || 'start') + ' to ' + (seasonFilter.to || 'now'))
+      : (seasonFilter.range === 'all' ? 'all games' : 'last ' + seasonFilter.range + ' games')],
+    ['Filter — minimum minutes', seasonFilter.minMins || 0],
   ];
   const wsS = XLSX.utils.aoa_to_sheet(sum); wsS['!cols'] = [{ wch: 26 }, { wch: 22 }];
   XLSX.utils.book_append_sheet(wb, wsS, 'Season Summary');
-  const { P, K } = seasonAgg(games);
+  const agg0 = seasonAgg(games);
+  // the report is what the screen says it is: the same minutes floor applies
+  const P = agg0.P.filter(p => (p.mins || 0) >= seasonFilter.minMins), K = agg0.K;
   const pAoa = [['No', 'Player', 'GP', 'Minutes', 'Goals', 'Shots', 'Shot %', 'Goals per Game', 'Assists', 'Steals', 'Blocks', 'Turnovers',
     "7's Drawn", "7's Made", "7's Missed", '2 Min', "2's Drawn", 'Yellow', 'Red', 'Points']];
   for (const p of P.slice().sort((a, b) => b.goals - a.goals))

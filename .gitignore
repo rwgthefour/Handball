@@ -1,0 +1,5 @@
+src/out_*
+src/shot_*
+src/*.xlsx
+!src/xlsx.full.min.js
+reports/

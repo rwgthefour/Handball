@@ -232,7 +232,10 @@ function normFromLive(g) {   // archived games -> season record
   const d = derive(g);
   const players = [], keepers = [];
   for (const p of g.rosterSnap) {
-    const raw = d.P.get(p.pid); if (!raw) continue;
+    // matches the box score and the export: minutes played is a record too, so
+    // the archived game and its own workbook cannot disagree about who played
+    const raw = d.P.get(p.pid) || (minsIn(g, p.pid) > 0 ? blankP() : null);
+    if (!raw) continue;
     const r = pRow(p.num, p.name, p.pos, raw);
     players.push({ name: p.name, num: p.num, mins: +(minsIn(g, p.pid) / 60).toFixed(2),
       goals: r.goals, shots: r.shots, ast: r.ast, stl: r.stl,

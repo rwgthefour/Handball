@@ -3,8 +3,10 @@
    captures real downloads, parses them, and round-trips into a clean browser. */
 const path = require('path');
 const fs = require('fs');
-const SCRATCH = __dirname;
-const XLSX = require(path.join(SCRATCH, 'xlsx.full.min.js'));
+// probe OUTPUT (downloaded workbooks, screenshots) goes to a temp dir — writing
+// it beside the source put test artifacts in the repo and in every commit
+const SCRATCH = fs.mkdtempSync(path.join(process.env.TMPDIR || '/tmp', 'afahb-probe-'));
+const XLSX = require(path.join(__dirname, 'xlsx.full.min.js'));   // the library ships with the SOURCE
 const REPO = '/Users/willgarrett/Desktop/ApolloDagger';
 const REPO_HB = '/Users/willgarrett/Desktop/Handball';
 const { chromium } = require(path.join(REPO, 'node_modules', 'playwright'));
@@ -431,6 +433,17 @@ const pidOf = num => _probePage.evaluate(n => {
   const cr2 = await cornRow();
   ok('an empty-net goal is logged but kept out of the keeper\'s save %',
     cr2 && cr2[9] === '1' && cr2[5] === '1' && cr2[4] === '66.7%', JSON.stringify(cr2));
+  const beforeFloat = await cornRow();
+  await courtOut(1);                                   // pull the keeper for a 7th field player
+  await page.click('.opp-panel button[data-oev="ogoal"]');   // logged the fast way, no checkbox
+  await sleep(150);
+  const afterFloat = await cornRow();
+  ok('pulling the keeper marks the next goal against as an empty net, however it was logged',
+    afterFloat && afterFloat[9] === '2' && afterFloat[5] === beforeFloat[5] && afterFloat[2] === beforeFloat[2],
+    JSON.stringify(afterFloat));
+  ok('the scoreboard still counts an empty-net goal', await page.$eval('#sb-them', e => e.textContent) === '3');
+  await benchIn(1);                                    // keeper back in goal
+  await sleep(120);
   const filterOpts = await page.$$eval('#gm-filter option', o => o.map(x => x.textContent));
   ok('the map can be filtered to one keeper', filterOpts.some(t => /Shots faced by #1 Corn/.test(t)), filterOpts.join(' | '));
   const allShots = await page.$$eval('#gm-marks circle', c => c.length);
@@ -474,6 +487,33 @@ const pidOf = num => _probePage.evaluate(n => {
   const benchMins = await page.$eval('#bench-strip .bchip .mn', e => e.textContent);
   ok('a player on the bench does not', benchMins === '0:00', benchMins);
   await page.click('#btn-clock');
+  // editing the clock used to leave an <input> in place forever, and BOTH
+  // repaint paths skip an element that holds one — the scoreboard died
+  await page.click('#sb-clock');
+  await page.fill('#sb-clock input', '00:04');
+  await page.press('#sb-clock input', 'Enter');
+  await sleep(150);
+  ok('after editing, the clock is text again — not a dead input box',
+    await page.$$eval('#sb-clock input', i => i.length) === 0
+    && await page.$eval('#sb-clock', e => e.textContent) === '00:04',
+    await page.$eval('#sb-clock', e => e.textContent));
+  await page.click('#btn-clock');
+  await sleep(1600);
+  ok('an edited clock still ticks', await page.$eval('#sb-clock', e => e.textContent) !== '00:04',
+    await page.$eval('#sb-clock', e => e.textContent));
+  await page.waitForFunction(() => document.getElementById('sb-clock').textContent === '00:00', undefined, { timeout: 8000 }).catch(() => {});
+  await sleep(700);
+  ok('the clock STOPS itself when the period runs out',
+    await page.$eval('#btn-clock', e => e.textContent).then(t => /START/.test(t)),
+    await page.$eval('#btn-clock', e => e.textContent));
+  const stopped = await page.$eval('.pcard[data-num="17"] .mins', e => e.textContent);
+  await sleep(1200);
+  ok('playing time stops with it, instead of banking the rest of the afternoon',
+    await page.$eval('.pcard[data-num="17"] .mins', e => e.textContent) === stopped, stopped);
+  await page.click('#sb-clock');
+  await page.fill('#sb-clock input', '20:00');
+  await page.press('#sb-clock input', 'Enter');
+  await sleep(120);
 
   console.log('— live export —');
   const dl0 = downloads.length;
@@ -487,8 +527,8 @@ const pidOf = num => _probePage.evaluate(n => {
     JSON.stringify(['Game Info', 'Player Stats', 'Goalkeepers', 'Team Totals', 'Play-by-Play', 'Shot Map', 'Roster']), wb1.SheetNames.join(','));
   const info = Object.fromEntries(XLSX.utils.sheet_to_json(wb1.Sheets['Game Info'], { header: 1 }).filter(r => r.length >= 2));
   ok('Game Info: opponent Army, format mark', info['Opponent'] === 'Army' && info['Format'] === 'AFA-HB-1');
-  ok('Game Info: score 3-2 (the empty-net goal still counts on the board)',
-    info['Air Force goals'] === 3 && info['Opponent goals'] === 2, info['Air Force goals'] + '-' + info['Opponent goals']);
+  ok('Game Info: score 3-3 (both empty-net goals still count on the board)',
+    info['Air Force goals'] === 3 && info['Opponent goals'] === 3, info['Air Force goals'] + '-' + info['Opponent goals']);
   const ps = XLSX.utils.sheet_to_json(wb1.Sheets['Player Stats'], { header: 1 });
   const jack = ps.find(r => r[1] === 'Jack');
   ok('Player Stats: Jack 2 goals / 2 shots / 100%', jack && jack[4] === 2 && jack[5] === 2 && jack[6] === 100, JSON.stringify(jack));
@@ -500,12 +540,19 @@ const pidOf = num => _probePage.evaluate(n => {
   ok("Player Stats: RJ assist 1, 2's Drawn 1", rj && rj[7] === 1 && rj[15] === 1, JSON.stringify(rj));
   const gks = XLSX.utils.sheet_to_json(wb1.Sheets['Goalkeepers'], { header: 1 });
   const corn = gks.find(r => r[1] === 'Corn');
-  ok('Goalkeepers: Corn 3 faced / 2 saves / 1 GA / 1 after-whistle / 1 empty net',
-    corn && corn[2] === 3 && corn[3] === 2 && corn[5] === 1 && corn[8] === 1 && corn[9] === 1, JSON.stringify(corn));
+  ok('Goalkeepers: Corn 3 faced / 2 saves / 1 GA / 1 after-whistle / 2 empty net',
+    corn && corn[2] === 3 && corn[3] === 2 && corn[5] === 1 && corn[8] === 1 && corn[9] === 2, JSON.stringify(corn));
   const sm = XLSX.utils.sheet_to_json(wb1.Sheets['Shot Map'], { header: 1 });
   ok('Shot Map has every surviving mapped shot with coords', sm.length === 4 && typeof sm[1][8] === 'number', JSON.stringify(sm[1]));
   ok('Shot Map notes the empty-net goal', sm.slice(1).some(r => r[10] === 'EMPTY NET'), JSON.stringify(sm.slice(1).map(r => r[10])));
   ok('Shot Map records the 7m as Missed, not Saved', sm.slice(1).some(r => r[6] === 'Missed' && r[7] === 'Y'), JSON.stringify(sm.slice(1).map(r => [r[6], r[7]])));
+  const roman = ps.find(r => r[1] === 'Roman');
+  ok('a starter who recorded nothing still appears, with his minutes',
+    roman && roman[3] > 0 && roman[4] === 0, JSON.stringify(roman));
+  const boxRoman = await page.$$eval('#livebox tr', rows => {
+    for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
+      if (c[1] === 'Roman') return c; } return null; });
+  ok('…and the live box score shows him too', boxRoman && /^[0-9]+:[0-9]{2}$/.test(boxRoman[3]), JSON.stringify(boxRoman));
   const rosterSheet = XLSX.utils.sheet_to_json(wb1.Sheets['Roster'], { header: 1 });
   ok('Roster sheet carries the squad picked for this game', rosterSheet.length === 14);
   await page.screenshot({ path: path.join(SCRATCH, 'shot_game.png'), fullPage: true });
@@ -521,7 +568,7 @@ const pidOf = num => _probePage.evaluate(n => {
   await goTab(page, 'season');
   await sleep(200);
   const tiles1 = await page.$eval('#tiles', e => e.textContent);
-  ok('tiles show a 1–0 record', /1–0/.test(tiles1), tiles1.slice(0, 80));
+  ok('tiles show the finished game as a tie', /0–0–1/.test(tiles1), tiles1.slice(0, 80));
   ok('4 chart cards render', await page.$$eval('#charts .chartcard', c => c.length) === 4);
   ok('charts contain svg marks', await page.$$eval('#charts svg path, #charts svg circle', m => m.length > 4));
   if (fs.existsSync(LEGACY)) {
@@ -581,6 +628,17 @@ const pidOf = num => _probePage.evaluate(n => {
     await page.$eval('#sf-note', e => e.textContent));
   ok('the filter says what it is showing', /showing 1 of 3 games/.test(await page.$eval('#sf-note', e => e.textContent)),
     await page.$eval('#sf-note', e => e.textContent));
+  await page.fill('#sf-from', '');
+  await page.fill('#sf-to', '2030-01-01');
+  await page.dispatchEvent('#sf-to', 'change');
+  await sleep(250);
+  ok('a To date with no From still cannot hold an undated game', await gameRows() === 2,
+    await page.$eval('#sf-note', e => e.textContent));
+  ok('and it says so rather than quietly dropping them',
+    /undated game\(s\) cannot be placed in a date range/.test(await page.$eval('#sf-note', e => e.textContent)),
+    await page.$eval('#sf-note', e => e.textContent));
+  await page.fill('#sf-to', '');
+  await page.dispatchEvent('#sf-to', 'change');
   await page.selectOption('#sf-range', 'all');
   await sleep(250);
   ok('clearing the range brings every game back', await gameRows() === 4);
@@ -619,9 +677,9 @@ const pidOf = num => _probePage.evaluate(n => {
   const krow2 = await p2.$$eval('#season-gk tr', rows => {
     for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
       if (c[1] === 'Corn') return c; } return null; });
-  ok('round-trip preserves Corn 2 saves, after-whistle and empty net',
-    krow2 && krow2[4] === '2' && krow2[9] === '1' && krow2[10] === '1', JSON.stringify(krow2));
-  ok('round-trip tile record 1–0', /1–0/.test(await p2.$eval('#tiles', e => e.textContent)));
+  ok('round-trip preserves Corn 2 saves, after-whistle and both empty nets',
+    krow2 && krow2[4] === '2' && krow2[9] === '1' && krow2[10] === '2', JSON.stringify(krow2));
+  ok('round-trip tile record matches', /0–0–1/.test(await p2.$eval('#tiles', e => e.textContent)));
 
   console.log('— resume after reload (live game survives) —');
   const ctx3 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
@@ -675,6 +733,11 @@ const pidOf = num => _probePage.evaluate(n => {
   }, n);
   ok('the count follows the picks', /8 of 12 dressed/.test(await pq.$eval('#g-roster-count', e => e.textContent)),
     await pq.$eval('#g-roster-count', e => e.textContent));
+  await goTab(pq, 'roster');            // a trip to the roster page must not undo the picks
+  await goTab(pq, 'game');
+  ok('the squad picks survive a visit to the roster page',
+    /8 of 12 dressed/.test(await pq.$eval('#g-roster-count', e => e.textContent)),
+    await pq.$eval('#g-roster-count', e => e.textContent));
   await pq.fill('#g-opp', 'Navy');
   await pq.click('#btn-start');
   await pq.waitForSelector('#scoreboard', { state: 'visible' });
@@ -685,6 +748,40 @@ const pidOf = num => _probePage.evaluate(n => {
   ok('only the picked players are in the game', inGame.squad === 8 && !inGame.nums.includes(23), JSON.stringify(inGame));
   ok('the court fills from the picked squad, the rest sit', await pq.$$eval('#pgrid .pcard', c => c.length) === COURT_MAX
     && await pq.$$eval('#bench-strip .bchip', c => c.length) === 1);
+  await openRosterMgmt(pq);                       // a mid-game roster edit
+  // an unlinked roster row keeps its name in an <input>, whose value is NOT in
+  // textContent — matching on text found nothing and the edit silently no-opped
+  const edited = await pq.evaluate(() => {
+    const row = [...document.querySelectorAll('#roster-table tr')].find(r => {
+      const n = r.querySelector('td:nth-child(2) input');
+      return n && /Christian/.test(n.value);
+    });
+    if (!row) return 'no row';
+    const n = row.querySelector('.num-in');
+    if (!n) return 'no number field';
+    n.value = '44'; n.dispatchEvent(new Event('change'));
+    return 'edited';
+  });
+  ok('the mid-game roster edit actually happened', edited === 'edited', edited);
+  await goTab(pq, 'game');
+  await sleep(200);
+  ok('fixing a jersey mid-game does not drag the rest of the roster into it',
+    await pq.evaluate(() => (JSON.parse(localStorage.getItem('afahb.current.v1') || '{}').rosterSnap || []).length) === 8);
+  await pq.click('#btn-endgame');
+  await sleep(700);
+  ok('the squad picker keeps its picks after a visit to the roster page',
+    /8 of 12 dressed/.test(await pq.$eval('#g-roster-count', e => e.textContent)) === false, 'reset for the next game');
+  await pq.fill('#g-opp', 'Army');
+  await pq.click('#btn-start');
+  await pq.waitForSelector('#scoreboard', { state: 'visible' });
+  await pq.click('#sb-halves button:nth-child(3)');       // OT1
+  await sleep(200);
+  ok('overtime counts down from its own length, not a full half',
+    await pq.$eval('#sb-clock', e => e.textContent) === '05:00', await pq.$eval('#sb-clock', e => e.textContent));
+  await pq.click('#sb-halves button:nth-child(5)');       // shoot-out
+  await sleep(200);
+  ok('a shoot-out shows no clock at all', await pq.$eval('#sb-clock', e => e.textContent) === '—:—',
+    await pq.$eval('#sb-clock', e => e.textContent));
   await ctxQ.close();
 
   console.log('— guards refuse dishonest states —');
