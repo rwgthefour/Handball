@@ -794,8 +794,24 @@ const pidOf = num => _probePage.evaluate(n => {
   await openRosterMgmt(p4);
   await p4.click('#btn-demo-roster');
   await p4.selectOption('#r-card', '_other');
-  await p4.fill('#r-name', 'Walk-on Nonum');            // no jersey number
+  await p4.fill('#r-name', 'Walk-on Nonum');
   await p4.click('#btn-addplayer');
+  await sleep(120);
+  ok('a player added with a blank # gets the next free number, counting up',
+    await p4.evaluate(() => {
+      const r = JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]');
+      const w = r.find(p => /Walk-on/.test(p.name));
+      return !!w && w.num === 2;          // the demo roster holds 1, 3, 4, 6, 7, 9, 11, 12, 14, 18, 21, 23
+    }), await p4.evaluate(() => (JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]')
+      .find(p => /Walk-on/.test(p.name)) || {}).num));
+  await p4.evaluate(() => {              // clearing a number is how one goes missing now
+    const row = [...document.querySelectorAll('#roster-table tr')].find(r => {
+      const n = r.querySelector('td:nth-child(2) input');
+      return n && /Walk-on/.test(n.value);
+    });
+    const n = row && row.querySelector('.num-in');
+    if (n) { n.value = ''; n.dispatchEvent(new Event('change')); }
+  });
   await goTab(p4, 'game');
   await p4.fill('#g-opp', 'Navy');
   await p4.click('#btn-start');

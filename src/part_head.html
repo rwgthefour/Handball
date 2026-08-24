@@ -684,14 +684,16 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       This list is what the GAME page tracks against. Pick each cadet from the <b>team cards</b> so
       their game stats attach to their profile — position and class year fill themselves in
       (C1C 2027, C2C 2028, C3C 2029, C4C 2030), and you only add the jersey number. Anyone without
-      a card can still be added by name. Add every cadet once — number, name, position
+      a card can still be added by name. Leave the <b>#</b> blank and the next free jersey number is
+      assigned for you, counting up from 1. Add every cadet once — number, name, position
       (<b>GK</b> marks goalkeepers). It is saved in this browser and reused every game; if the team
       repo carries a roster file it loads automatically the first time. Untick <b>Dressed</b> for
       anyone not playing today and they stay off the game screen. Edits here are live; click a cell
       to change it.
     </div></details>
     <div class="row" style="margin-bottom:12px">
-      <div class="fld"><label>#</label><input type="number" id="r-num" min="1" max="99" style="width:70px"></div>
+      <div class="fld"><label>#</label><input type="number" id="r-num" min="1" max="99" style="width:70px"
+        title="Leave blank and the next free number is used"></div>
       <div class="fld"><label>Player</label><select id="r-card" style="width:250px"></select></div>
       <div class="fld" id="r-name-wrap" style="display:none"><label>Name</label>
         <input id="r-name" placeholder="Last, First  or  First Last" style="width:200px"></div>

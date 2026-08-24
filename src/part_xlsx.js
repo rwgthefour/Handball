@@ -198,7 +198,7 @@ function parseRosterRows(rows) {
       pos: String(r[cPos] || 'CB').trim(), year: String((cClass >= 0 && r[cClass]) || '').trim(),
       active: String((cDr >= 0 && r[cDr]) || 'Y').trim().toUpperCase() !== 'N' });
   }
-  return out;
+  return numberTheSquad(out);      // a roster file without jerseys still numbers itself
 }
 $('#roster-file').addEventListener('change', async ev => {
   const f = ev.target.files[0]; if (!f) return;

@@ -265,10 +265,33 @@ function saveRoster() {
 }
 function snapOf(p) { return { pid: p.id, num: p.num, name: p.name, pos: p.pos, year: p.year || '' }; }
 function snapByPid(pid) { return game ? game.rosterSnap.find(x => x.pid === pid) : null; }
-function cleanNum(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
+// blank means NO number, never #0 — Number(null) and Number('') are both 0,
+// which is how a cleared jersey used to turn into a real-looking number
+function cleanNum(v) {
+  if (v == null || String(v).trim() === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+/* Numbers are assigned by counting up from 1 — a coach should not have to think
+   about jerseys to start tracking. Any number already taken is skipped. */
+function nextFreeNum(taken) {
+  const used = new Set((taken || []).filter(n => n != null));
+  for (let n = 1; n <= 99; n++) if (!used.has(n)) return n;
+  return null;
+}
+function numberTheSquad(list) {          // fills only the blanks, in list order
+  const taken = list.map(p => p.num).filter(n => n != null);
+  for (const p of list) if (p.num == null) {
+    const n = nextFreeNum(taken);
+    if (n == null) break;
+    p.num = n; taken.push(n);
+  }
+  return list;
+}
 
 function renderRoster() {
   linkRosterToCards(); fillCardPicker();
+  const nn = $('#r-num'); if (nn) nn.placeholder = String(nextFreeNum(roster.map(p => p.num)) ?? '');
   const yr = $('#r-year'); if (yr && !yr.options.length) fillYearPicker(yr, '');
   const t = $('#roster-table'); t.textContent = '';
   const thr = el('tr');
@@ -324,7 +347,7 @@ $('#r-card').addEventListener('change', () => {
 $('#btn-addplayer').addEventListener('click', () => {
   const pick = $('#r-card').value;
   const card = pick && pick !== '_other' ? cardProfiles().find(c => c.id === pick) : null;
-  const num = $('#r-num').value === '' ? null : cleanNum($('#r-num').value);
+  const num = $('#r-num').value === '' ? nextFreeNum(roster.map(p => p.num)) : cleanNum($('#r-num').value);
   const name = card ? card.name : $('#r-name').value.trim();
   if (!name) { toast(pick === '_other' ? 'Enter a name' : 'Pick a player from the team cards'); return; }
   if (roster.some(p => nameKey(p.name) === nameKey(name))) { toast(name + ' is already on the roster'); return; }
