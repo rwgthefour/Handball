@@ -435,7 +435,32 @@ document.addEventListener('click', ev => {
 $$('#menu button[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 $('#menu-donate').addEventListener('click', () => $('#menu').classList.remove('open'));
 $$('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
+/* The landing page is a stream: the most recent games first, so anyone opening
+   the site sees how the season is going before anything else. */
+const STREAM_GAMES = 5;
+function renderStream() {
+  const host = $('#home-stream'); if (!host) return;
+  host.textContent = '';
+  let games = [];
+  try { games = allSeasonGames().slice().reverse().slice(0, STREAM_GAMES); } catch (e) { games = []; }
+  if (!games.length) { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  host.appendChild(el('h2', { text: games.length === 1 ? 'Latest game' : 'Recent games' }));
+  for (const g of games) {
+    const scorer = (typeof topScorerOf === 'function' ? topScorerOf(g) : '—');
+    host.appendChild(el('button', {
+      cls: 'gcard' + (g.result === 'W' ? ' w' : g.result === 'L' ? ' l' : ''),
+      title: 'Open the season page', onclick: () => showTab('season') },
+      el('span', { cls: 'res', text: g.result || '—' }),
+      el('span', { cls: 'meta' },
+        el('span', { cls: 'opp', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent }),
+        el('span', { cls: 'sub', text: [g.date || 'date not recorded', g.comp].filter(Boolean).join(' · ') })),
+      el('span', { cls: 'score', text: g.us + '–' + g.them }),
+      el('span', { cls: 'top', text: scorer === '—' ? '' : 'Top: ' + scorer })));
+  }
+}
 function renderHome() {
+  renderStream();
   const r = $('#home-resume');
   if (game && !game.done) {
     const d = derive(game);

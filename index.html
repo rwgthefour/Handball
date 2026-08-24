@@ -67,6 +67,24 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .home-actions .act:hover{box-shadow:0 8px 22px rgba(8,25,80,.16);border-top-color:#c9a227}
 .act .t{font-weight:800;letter-spacing:.1em;color:var(--afa-blue);font-size:15px}
 .act .d{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
+/* the stream: the most recent games, newest first */
+.home-stream{max-width:880px;margin:22px auto 4px;padding:0 16px;display:none}
+.home-stream h2{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mut);
+  margin-bottom:10px;text-align:center}
+.gcard{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--hairline);
+  border-left:4px solid var(--silver);padding:12px 14px;margin-bottom:8px;cursor:pointer;text-align:left;
+  width:100%;font:inherit}
+.gcard:hover{box-shadow:0 6px 18px rgba(8,25,80,.14)}
+.gcard.w{border-left-color:var(--good)} .gcard.l{border-left-color:var(--crit)}
+.gcard .res{font-weight:800;font-size:15px;width:22px;color:var(--ink-2)}
+.gcard.w .res{color:var(--good)} .gcard.l .res{color:var(--crit)}
+.gcard .meta{flex:1;min-width:0}
+.gcard .opp{font-weight:700;color:var(--afa-blue-dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcard .sub{font-size:11.5px;color:var(--ink-mut)}
+.gcard .score{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+.gcard .top{font-size:11.5px;color:var(--ink-2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-about{max-width:680px;margin:6px auto 0;padding:0 16px;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+.home-about p{margin:0 0 14px}
 .home-photo{max-width:880px;margin:24px auto 20px;padding:0 16px}
 .home-photo img{width:100%;display:block;border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
   box-shadow:0 12px 32px rgba(8,25,80,.20)}
@@ -380,6 +398,9 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   .fld input,.fld select,.fld textarea,.gm-pop select,.gm-pop input[type=text],#note-in{font-size:16px}
   .home-hero{padding:32px 12px 14px}
   .home-hero img{width:110px;height:110px}
+  .gcard{gap:9px;padding:10px}
+  .gcard .top{display:none}
+  .gcard .score{font-size:18px}
   .pgrid{grid-template-columns:1fr}
   .tiles{grid-template-columns:repeat(2,1fr)}
 }
@@ -421,9 +442,25 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
     <img id="home-crest" alt="U.S. Air Force Academy crest">
     <h1>AIR FORCE TEAM HANDBALL</h1>
     <div class="sub">United States Air Force Academy</div>
-    <div class="wel">Welcome to the home of Air Force team handball stats. Track every game live,
-      build the season picture, and share it all as Excel — right from this page, even with no
-      internet at the gym. Open the ☰ menu anytime to jump between pages.</div>
+  </div>
+
+  <div class="home-stream" id="home-stream"></div>
+
+  <!-- EDITABLE COPY: three paragraphs about the programme. Reword freely. -->
+  <div class="home-about">
+    <p>Team handball at the United States Air Force Academy is a cadet club sport. The roster is
+      drawn from across the Cadet Wing — every squadron and every class year — and the team trains
+      and travels together through the season, competing against collegiate programmes from around
+      the country.</p>
+    <p>The game is seven against seven: six court players and a goalkeeper, two thirty-minute
+      halves, a clock that keeps running. Attackers work the ball around a six-metre arc and throw
+      at a goal two metres tall and three wide, and a seven-metre throw is the penalty. It is fast,
+      physical and continuous — one of the best sports there is to watch from the sideline.</p>
+    <p>This page is where the season lives. Every game is tracked live — every shot, save,
+      seven-metre and suspension — and those numbers attach to each cadet's profile, so a player's
+      season is one card rather than a stack of spreadsheets. The workbook from every game is
+      published here and the season tables and charts build themselves from it. If you would like
+      to support the team, the DONATE link in the menu goes straight to the club's giving page.</p>
   </div>
   <div class="home-photo"><img id="home-team-photo" alt="Air Force team handball team photo"></div>
   <div style="max-width:880px;margin:0 auto;padding:0 16px">
@@ -1296,7 +1333,32 @@ document.addEventListener('click', ev => {
 $$('#menu button[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 $('#menu-donate').addEventListener('click', () => $('#menu').classList.remove('open'));
 $$('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
+/* The landing page is a stream: the most recent games first, so anyone opening
+   the site sees how the season is going before anything else. */
+const STREAM_GAMES = 5;
+function renderStream() {
+  const host = $('#home-stream'); if (!host) return;
+  host.textContent = '';
+  let games = [];
+  try { games = allSeasonGames().slice().reverse().slice(0, STREAM_GAMES); } catch (e) { games = []; }
+  if (!games.length) { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  host.appendChild(el('h2', { text: games.length === 1 ? 'Latest game' : 'Recent games' }));
+  for (const g of games) {
+    const scorer = (typeof topScorerOf === 'function' ? topScorerOf(g) : '—');
+    host.appendChild(el('button', {
+      cls: 'gcard' + (g.result === 'W' ? ' w' : g.result === 'L' ? ' l' : ''),
+      title: 'Open the season page', onclick: () => showTab('season') },
+      el('span', { cls: 'res', text: g.result || '—' }),
+      el('span', { cls: 'meta' },
+        el('span', { cls: 'opp', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent }),
+        el('span', { cls: 'sub', text: [g.date || 'date not recorded', g.comp].filter(Boolean).join(' · ') })),
+      el('span', { cls: 'score', text: g.us + '–' + g.them }),
+      el('span', { cls: 'top', text: scorer === '—' ? '' : 'Top: ' + scorer })));
+  }
+}
 function renderHome() {
+  renderStream();
   const r = $('#home-resume');
   if (game && !game.done) {
     const d = derive(game);

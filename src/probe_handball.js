@@ -108,6 +108,10 @@ const pidOf = num => _probePage.evaluate(n => {
 
   console.log('— welcome page, menu, admin wall —');
   ok('opens on the welcome page', await page.$eval('#tab-home', e => e.classList.contains('on')));
+  ok('the landing page carries a three-paragraph description',
+    await page.$$eval('.home-about p', p => p.length) === 3);
+  ok('with no games yet, the stream stays out of the way',
+    await page.$eval('#home-stream', e => getComputedStyle(e).display) === 'none');
   ok('welcome crest decodes', await page.evaluate(() => document.getElementById('home-crest').naturalWidth > 0));
   ok('old top strip is gone', await page.$$eval('body > .cui', n => n.length) === 0);
   ok('menu closed until ☰ pressed', await page.$eval('#menu', m => !m.classList.contains('open')));
@@ -563,6 +567,18 @@ const pidOf = num => _probePage.evaluate(n => {
   ok('END GAME downloads the workbook', downloads.length === dl0 + 2);
   await page.waitForSelector('#setup-card', { state: 'visible' });
   ok('back on setup, game archived', await page.evaluate(() => JSON.parse(localStorage.getItem('afahb.games.v1') || '[]').length) === 1);
+
+  await goTab(page, 'home');
+  await sleep(250);
+  const stream = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('#home-stream .gcard')];
+    return { n: cards.length, first: cards[0] ? cards[0].textContent.replace(/\s+/g, ' ').trim() : null,
+      shown: getComputedStyle(document.getElementById('home-stream')).display !== 'none' };
+  });
+  ok('the finished game appears in the landing-page stream',
+    stream.shown && stream.n === 1 && /vs Army/.test(stream.first) && /3–3/.test(stream.first) && /Top: Jack/.test(stream.first), JSON.stringify(stream));
+  await page.click('#home-stream .gcard');
+  ok('a stream card opens the season page', await page.$eval('#tab-season', e => e.classList.contains('on')));
 
   console.log('— season: local + legacy import —');
   await goTab(page, 'season');
