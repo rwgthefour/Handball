@@ -228,6 +228,58 @@ $('#roster-file').addEventListener('change', async ev => {
 const P_FIELDS = ['mins', 'goals', 'shots', 'ast', 'stl', 'blk', 'to', 'd7', 'g7', 'x7', 'p2', 'd2', 'yc', 'rc'];
 const K_FIELDS = ['faced', 'sv', 'ga', 'f7', 'sv7', 'savew', 'en'];
 
+/* THE FLOW OF THE GAME — the running score, read from the play-by-play, so the
+   report can say how it turned rather than only how it ended. Same shape from a
+   workbook and from a live archive; absent for a legacy sheet, which has none. */
+function flowFrom(rows) {          // rows: {half, clock, team, player, event, us, them}
+  let pu = 0, pt = 0, lead = 0, leadChanges = 0, ties = 0, maxUs = 0, maxThem = 0;
+  let lastEqual = null, last = null, first = null, runTeam = null, run = 0, bestRun = null;
+  const halfGoals = {};
+  for (const r of rows) {
+    if (r.us == null || r.them == null) continue;
+    if (r.us === pu && r.them === pt) continue;                 // not a goal
+    const mine = r.us > pu;
+    const who = mine ? (r.player || '') : null;
+    if (who) {
+      const k = nameKey(who);
+      halfGoals[k] = halfGoals[k] || { H1: 0, H2: 0, other: 0 };
+      halfGoals[k][r.half === 'H1' ? 'H1' : r.half === 'H2' ? 'H2' : 'other']++;
+    }
+    if (runTeam === mine) run++; else { runTeam = mine; run = 1; }
+    if (run >= 3 && (!bestRun || run > bestRun.n)) bestRun = { n: run, mine, half: r.half, clock: r.clock };
+    const sign = r.us > r.them ? 1 : r.us < r.them ? -1 : 0;
+    if (sign === 0) { ties++; lastEqual = r.us + '–' + r.them; }
+    else { if (lead !== 0 && sign !== lead) leadChanges++; lead = sign; }
+    maxUs = Math.max(maxUs, r.us - r.them); maxThem = Math.max(maxThem, r.them - r.us);
+    last = { half: r.half, clock: r.clock, mine, player: r.player || '', score: r.us + '–' + r.them };
+    if (!first) first = { mine, clock: r.clock };
+    pu = r.us; pt = r.them;
+  }
+  if (!last) return null;
+  return { leadChanges, ties, maxUs, maxThem, lastEqual, last, first, bestRun, halfGoals };
+}
+function flowFromSheet(wb) {
+  const rows = rowsOf(wb.Sheets['Play-by-Play']);
+  if (rows.length < 2) return null;
+  const col = headerCols(rows);
+  const cH = col('Half'), cC = col('Clock'), cT = col('Team'), cP = col('Player'), cS = col('Score');
+  if (cS < 0) return null;
+  return flowFrom(rows.slice(1).map(r => {
+    const m = /^(\d+)-(\d+)$/.exec(String((r || [])[cS] ?? '').trim());
+    return { half: String((r || [])[cH] ?? ''), clock: String((r || [])[cC] ?? ''),
+      team: String((r || [])[cT] ?? ''), player: String((r || [])[cP] ?? ''),
+      us: m ? +m[1] : null, them: m ? +m[2] : null };
+  }));
+}
+function flowFromGame(g) {
+  let us = 0, them = 0;
+  return flowFrom(g.events.map(e => {
+    if (e.type === 'goal' || e.type === 'g7') us++;
+    if (e.type === 'ogoal' || e.type === 'og7') them++;
+    const sp = e.pid != null ? g.rosterSnap.find(x => x.pid === e.pid) : null;
+    return { half: e.half, clock: e.clock, player: sp ? sp.name : '', us, them };
+  }));
+}
 function normFromLive(g) {   // archived games -> season record
   const d = derive(g);
   const players = [], keepers = [];
@@ -250,7 +302,7 @@ function normFromLive(g) {   // archived games -> season record
   return { id: g.id, source: 'this browser', date: g.info.date, opponent: g.info.opponent,
     ha: g.info.ha, comp: g.info.comp, result: d.us > d.them ? 'W' : d.us < d.them ? 'L' : 'T',
     us: d.us, them: d.them, ht: d.halfScore.H1.us + '-' + d.halfScore.H1.them,
-    players, keepers, est: false };
+    flow: flowFromGame(g), players, keepers, est: false };
 }
 
 function parseOurFormat(wb, fname) {
@@ -296,7 +348,7 @@ function parseOurFormat(wb, fname) {
   const date = normDate(info['Date']);
   const opponent = String(info['Opponent'] || '?');
   const id = String(info['Game ID'] || (opponent + '::' + (date || '') + '::' + h32s(JSON.stringify([players, keepers]))));
-  return [{ id, source: fname, date, opponent, ht: String(info['Halftime'] || ''),
+  return [{ id, source: fname, date, opponent, ht: String(info['Halftime'] || ''), flow: flowFromSheet(wb),
     ha: String(info['Home/Away'] || ''), comp: String(info['Competition'] || ''),
     result: String(info['Result'] || ''), us: num0(info['Air Force goals']), them: num0(info['Opponent goals']),
     players, keepers, est: false }];

@@ -108,8 +108,8 @@ const pidOf = num => _probePage.evaluate(n => {
 
   console.log('— welcome page, menu, admin wall —');
   ok('opens on the welcome page', await page.$eval('#tab-home', e => e.classList.contains('on')));
-  ok('the landing page carries a three-paragraph description',
-    await page.$$eval('.home-about p', p => p.length) === 3);
+  ok('with no games yet, the report block stays out of the way',
+    await page.$eval('#home-recap', e => getComputedStyle(e).display) === 'none');
   ok('with no games yet, the stream stays out of the way',
     await page.$eval('#home-stream', e => getComputedStyle(e).display) === 'none');
   ok('welcome crest decodes', await page.evaluate(() => document.getElementById('home-crest').naturalWidth > 0));
@@ -584,13 +584,18 @@ const pidOf = num => _probePage.evaluate(n => {
   const recap = await page.evaluate(() => ({
     shown: getComputedStyle(document.getElementById('home-recap')).display !== 'none',
     paras: [...document.querySelectorAll('#home-recap p')].map(x => x.textContent),
-    below: (() => {                      // it belongs under the intro, not above it
-      const a = document.querySelector('.home-about'), r = document.getElementById('home-recap');
-      return !!(a && r) && (a.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
-    })(),
   }));
-  ok('the landing page carries a three-paragraph match report, below the intro',
-    recap.shown && recap.paras.length === 3 && recap.below, JSON.stringify({ n: recap.paras.length, below: recap.below }));
+  ok('the landing page carries a three-paragraph match report',
+    recap.shown && recap.paras.length === 3, JSON.stringify({ n: recap.paras.length }));
+  const recapBox = await page.evaluate(() => {
+    const r = document.getElementById('home-recap'), c = r.querySelector('.rc');
+    const s = document.getElementById('home-stream');
+    return { w: Math.round(r.getBoundingClientRect().width),
+      carded: !!c && getComputedStyle(c).backgroundColor !== 'rgba(0, 0, 0, 0)',
+      alignedWithStream: Math.abs(r.getBoundingClientRect().left - s.getBoundingClientRect().left) < 2 };
+  });
+  ok('the report is a styled card in the same column as the stream',
+    recapBox.w <= 724 && recapBox.carded && recapBox.alignedWithStream, JSON.stringify(recapBox));
   ok('the report is written from the game that was just played',
     /Air Force drew with Army 3–3/.test(recap.paras[0]) && /Jack/.test(recap.paras[1]), recap.paras[0]);
 

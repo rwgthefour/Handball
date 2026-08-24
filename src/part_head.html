@@ -68,7 +68,7 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .act .t{font-weight:800;letter-spacing:.1em;color:var(--afa-blue);font-size:15px}
 .act .d{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
 /* the stream: the most recent games, newest first */
-.home-stream{max-width:880px;margin:22px auto 4px;padding:0 16px;display:none}
+.home-stream{max-width:720px;margin:22px auto 4px;padding:0 16px;display:none}
 .home-stream h2{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mut);
   margin-bottom:10px;text-align:center}
 .gcard{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--hairline);
@@ -83,9 +83,17 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .gcard .sub{font-size:11.5px;color:var(--ink-mut)}
 .gcard .score{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
 .gcard .top{font-size:11.5px;color:var(--ink-2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.home-about{max-width:680px;margin:6px auto 0;padding:0 16px;color:var(--ink-2);font-size:14.5px;line-height:1.7}
-.home-about p{margin:0 0 14px}
-.home-photo{max-width:880px;margin:24px auto 20px;padding:0 16px}
+/* the match report sits where the intro used to, in the same centred column */
+.home-recap{max-width:720px;margin:18px auto 0;padding:0 16px;display:none}
+.home-recap .rc{background:var(--card);border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
+  padding:22px 24px;box-shadow:0 4px 16px rgba(8,25,80,.10)}
+.home-recap h2{font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--afa-blue);margin-bottom:5px}
+.home-recap .rsub{font-size:11.5px;letter-spacing:.06em;color:var(--ink-mut);margin-bottom:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--line)}
+.home-recap p{margin:0 0 13px;color:var(--ink-2);font-size:15px;line-height:1.75}
+.home-recap p:first-of-type{font-size:15.5px;color:var(--ink)}
+.home-recap p:last-child{margin-bottom:0}
+.home-photo{max-width:720px;margin:22px auto 20px;padding:0 16px}
 .home-photo img{width:100%;display:block;border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
   box-shadow:0 12px 32px rgba(8,25,80,.20)}
 .home-actions{padding-bottom:26px}
@@ -398,6 +406,8 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   .fld input,.fld select,.fld textarea,.gm-pop select,.gm-pop input[type=text],#note-in{font-size:16px}
   .home-hero{padding:32px 12px 14px}
   .home-hero img{width:110px;height:110px}
+  .home-recap .rc{padding:16px 15px}
+  .home-recap p{font-size:14.5px}
   .gcard{gap:9px;padding:10px}
   .gcard .top{display:none}
   .gcard .score{font-size:18px}
@@ -445,23 +455,6 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   </div>
 
   <div class="home-stream" id="home-stream"></div>
-
-  <!-- EDITABLE COPY: three paragraphs about the programme. Reword freely. -->
-  <div class="home-about">
-    <p>Team handball at the United States Air Force Academy is a cadet club sport. The roster is
-      drawn from across the Cadet Wing — every squadron and every class year — and the team trains
-      and travels together through the season, competing against collegiate programmes from around
-      the country.</p>
-    <p>The game is seven against seven: six court players and a goalkeeper, two thirty-minute
-      halves, a clock that keeps running. Attackers work the ball around a six-metre arc and throw
-      at a goal two metres tall and three wide, and a seven-metre throw is the penalty. It is fast,
-      physical and continuous — one of the best sports there is to watch from the sideline.</p>
-    <p>This page is where the season lives. Every game is tracked live — every shot, save,
-      seven-metre and suspension — and those numbers attach to each cadet's profile, so a player's
-      season is one card rather than a stack of spreadsheets. The workbook from every game is
-      published here and the season tables and charts build themselves from it. If you would like
-      to support the team, the DONATE link in the menu goes straight to the club's giving page.</p>
-  </div>
 
   <div class="home-recap" id="home-recap"></div>
   <div class="home-photo"><img id="home-team-photo" alt="Air Force team handball team photo"></div>
