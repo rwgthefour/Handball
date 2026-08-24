@@ -552,7 +552,9 @@ function bbCard(c, idx) {
   if (c.badge) ph.appendChild(el('div', { cls: 'badge', text: 'TEAM CAPTAIN' }));
   const keeperCard = cardIsKeeper(c, idx && idx.K.get(nameKey(c.name)));
   const ovr = idx ? overallOf(idx.P.get(nameKey(c.name)), idx.K.get(nameKey(c.name)), keeperCard) : null;
-  if (ovr != null) ph.appendChild(el('div', { cls: 'ovr', title: 'Overall — computed from this season\'s production' },
+  // staff-only: an overall is a coaching judgement about a cadet, so it rides
+  // the admin class rather than a re-render — it appears and goes with sign-in
+  if (ovr != null) ph.appendChild(el('div', { cls: 'ovr adminonly', title: 'Overall — computed from this season\'s production (staff view)' },
     el('div', { cls: 'n', text: String(ovr) }), el('div', { cls: 't', text: 'OVR' })));
   const frame = el('div', { cls: 'frame' }, ph,
     el('div', { cls: 'nm', text: c.name }),

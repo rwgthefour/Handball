@@ -862,6 +862,21 @@ const pidOf = num => _probePage.evaluate(n => {
     return { n: o ? +o.textContent : null, noGames: !!(other && other.querySelector('.ovr')) };
   });
   ok('an overall is computed for a player with games', ovr.n != null && ovr.n > 40 && ovr.n <= 99, JSON.stringify(ovr));
+  const ovrShown = () => pp.evaluate(() => {
+    const c = [...document.querySelectorAll('#team-cards .bbcard')].find(x => x.textContent.includes('Tierney'));
+    const o = c && c.querySelector('.ovr');
+    return !!o && getComputedStyle(o).display !== 'none';
+  });
+  ok('staff see the overall while signed in', await ovrShown() === true);
+  await pp.click('#menu-btn'); await pp.click('#menu-admin');          // sign out
+  await sleep(200);
+  ok('a visitor does not see the overall at all', await ovrShown() === false);
+  ok('…but the stat strip stays public', await pp.evaluate(() => {
+    const c = [...document.querySelectorAll('#team-cards .bbcard')].find(x => x.textContent.includes('Tierney'));
+    const st = c && c.querySelector('.cstats');
+    return !!st && getComputedStyle(st).display !== 'none';
+  }));
+  await unlockAdmin(pp);
   ok('a profile with no games played gets no overall at all', ovr.noGames === false);
   const kRule = await pp.evaluate(() => ({
     cbOneShot: cardIsKeeper({ name: 'x', pos: 'Center Back' }, { faced: 1, sv: 1 }),
