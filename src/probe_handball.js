@@ -887,8 +887,14 @@ const pidOf = num => _probePage.evaluate(n => {
     (await p5.$eval('#tiles', e => e.textContent)).slice(0, 60));
   ok('game log carries the committed games', await p5.$$eval('#gamelog tr', r => r.length) === 3);
   await p5.waitForFunction(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length > 0, undefined, { timeout: 10000 }).catch(() => {});
-  ok('the committed team roster auto-loads (12 names)',
-    await p5.evaluate(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length) === 12);
+  // compared against the committed file, not a number typed here — the roster
+  // changes when the team does, and a hardcoded count only rots
+  const rosterRows = XLSX.utils.sheet_to_json(
+    XLSX.read(fs.readFileSync(path.join(REPO_HB, 'data', 'roster.xlsx'))).Sheets['Roster'], { header: 1 })
+    .slice(1).filter(r => r && String(r[1] || '').trim()).length;
+  const loaded = await p5.evaluate(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length);
+  ok('the committed team roster auto-loads, every name of it',
+    loaded === rosterRows && loaded > 0, loaded + ' loaded / ' + rosterRows + ' in the file');
   ok('hosted visitor still cannot see import controls', await p5.$eval('#dropzone', e => getComputedStyle(e).display) === 'none');
   await goTab(p5, 'roster');
   const hostedCards = await p5.$eval('#team-cards', e => e.textContent);

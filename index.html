@@ -1379,9 +1379,9 @@ function teamStatsIndex() {
 /* An OVERALL is a summary of SEASON PRODUCTION — nothing else. Each part is
    linear to a cap so one huge game cannot run the number away, and a profile
    with no games played gets none at all rather than a floor of 40. */
-function overallOf(sp, sk) {
+function overallOf(sp, sk, keeper) {
   const cap = (v, per, max) => Math.max(0, Math.min(max, max * (v / per)));
-  if (sk && sk.faced && sk.gp) {
+  if (keeper && sk && sk.faced && sk.gp) {
     const pct = (sk.sv + sk.ga) ? sk.sv / (sk.sv + sk.ga) : 0;
     return Math.round(40 + cap(pct, 0.45, 40) + cap(sk.sv / sk.gp, 12, 14));
   }
@@ -1399,7 +1399,11 @@ function bbCard(c, idx) {
     el('img', { src: LOGOS.airforce, alt: '' }),
     el('span', { text: 'PHOTO COMING SOON' })));
   if (c.badge) ph.appendChild(el('div', { cls: 'badge', text: 'TEAM CAPTAIN' }));
-  const ovr = idx ? overallOf(idx.P.get(nameKey(c.name)), idx.K.get(nameKey(c.name))) : null;
+  /* A field player who covered a few shots in goal is still a field player:
+     the CARD's own position decides which strip and which overall it gets,
+     and only a card with no position falls back to "did they face shots". */
+  const keeperCard = c.pos ? posCodeFor(c.pos) === 'GK' : true;
+  const ovr = idx ? overallOf(idx.P.get(nameKey(c.name)), idx.K.get(nameKey(c.name)), keeperCard) : null;
   if (ovr != null) ph.appendChild(el('div', { cls: 'ovr', title: 'Overall — computed from this season\'s production' },
     el('div', { cls: 'n', text: String(ovr) }), el('div', { cls: 't', text: 'OVR' })));
   const frame = el('div', { cls: 'frame' }, ph,
@@ -1419,7 +1423,7 @@ function bbCard(c, idx) {
     const strip = el('div', { cls: 'cstats' });
     const stat = (lab, val) => strip.appendChild(el('div', {},
       el('div', { cls: 'v', text: String(val) }), el('div', { cls: 'l', text: lab })));
-    if (sk && sk.faced) {                       // a keeper reads as a keeper
+    if (keeperCard && sk && sk.faced) {          // a keeper reads as a keeper
       stat('GP', sk.gp); stat('SAVES', sk.sv);
       stat('SV%', ((sk.sv + sk.ga) ? Math.round(100 * sk.sv / (sk.sv + sk.ga)) : 0) + '%');
     } else {
