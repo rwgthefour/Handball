@@ -1,6 +1,6 @@
 {
  "v": 1,
- "ts": 1787605299887,
+ "ts": 1787609081864,
  "cards": [
   {
    "id": "c-cav",
@@ -204,11 +204,11 @@
    "role": "",
    "badge": false,
    "photo": "",
-   "sq": "",
-   "pos": "",
-   "home": "",
-   "major": "",
-   "career": ""
+   "sq": "CS-13",
+   "pos": "Right Wing",
+   "home": "Croton on Hudson, NY",
+   "major": "Mechanical Engineering",
+   "career": "Developmental Engineer"
   },
   {
    "id": "mspjbtc5me5sio",
@@ -217,11 +217,11 @@
    "role": "",
    "badge": false,
    "photo": "",
-   "sq": "",
-   "pos": "",
-   "home": "",
-   "major": "",
-   "career": ""
+   "sq": "CS-03",
+   "pos": "Left Back",
+   "home": "Mequon, WI",
+   "major": "Management",
+   "career": "Pilot"
   },
   {
    "id": "mspdkkcmx0gh08",
