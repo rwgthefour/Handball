@@ -11,10 +11,29 @@ const { chromium } = require(path.join(REPO, 'node_modules', 'playwright'));
 const apolloChrome = require(path.join(REPO, 'apollo_chrome.js'));
 const { spawn } = require('child_process');
 const PAGE = 'file://' + path.join(REPO_HB, 'index.html');
-// the team's legacy workbook, from the REPO copy — never ~/Downloads, which is
-// TCC-protected on macOS and readable only by luck (it silently stopped being
-// readable mid-session and read as an importer regression)
-const LEGACY = path.join(REPO_HB, 'games', '2025_Season_Legacy.xlsx');
+/* Fixtures live in the staged copy, never in the repo (its games/ folder is the
+   team's real season) and never in ~/Downloads (TCC-protected on macOS: it
+   stopped being readable mid-session and read as an importer regression). */
+const STAGE = path.join(process.env.TMPDIR || '/tmp', 'afahb_hosted_stage');
+const LEGACY = path.join(STAGE, 'games', 'legacy_fixture.xlsx');
+/* the team's old workbook shape: one sheet per opponent, a field-player block
+   then a keeper block headed "Shots Taken" */
+function legacySheet(rows, gkRows) {
+  const head = ['Name', 'Shots', 'Goals', 'Assists', 'Steals', 'Blocks', 'Turnovers', 'W/2min',
+    "7's Drawn", "7's Made", "2's Called For", "7's Missed"];
+  const gkHead = ['', 'Shots Taken', 'Saves', 'Assists', 'Goals', 'Turnovers', "7's Saved", "7's Taken", 'Saves after wistle'];
+  return XLSX.utils.aoa_to_sheet([[], head].concat(rows, [gkHead], gkRows));
+}
+function writeLegacyFixture(dest) {
+  const wb = XLSX.utils.book_new();
+  //                     name    Sh  G  A  St Bl TO
+  XLSX.utils.book_append_sheet(wb, legacySheet(
+    [['Jack', 10, 6, 2, 1, 0, 1], ['RJ', 5, 3, 2, 0, 0, 0]], [['Corn', 20, 8]]), 'New York');
+  XLSX.utils.book_append_sheet(wb, legacySheet(
+    [['Jack', 8, 5, 1, 0, 0, 0], ['RJ', 4, 1, 0, 0, 0, 1]], [['Corn', 15, 6]]), 'SUNY');
+  XLSX.utils.book_append_sheet(wb, legacySheet([['Jack'], ['RJ']], [['Corn']]), 'Unplayed');
+  fs.writeFileSync(dest, XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));   // the browser build has no fs
+}
 const ADMIN_PW = 'handball2027';
 
 /* --prep-hosted <dir>: build the staged copy the hosted section is served from
@@ -29,7 +48,9 @@ if (process.argv[2] === '--prep-hosted') {
   fs.rmSync(stage, { recursive: true, force: true });
   fs.mkdirSync(path.join(stage, 'data'), { recursive: true });
   fs.copyFileSync(path.join(REPO_HB, 'index.html'), path.join(stage, 'index.html'));
-  fs.cpSync(path.join(REPO_HB, 'games'), path.join(stage, 'games'), { recursive: true });
+  fs.mkdirSync(path.join(stage, 'games'), { recursive: true });
+  writeLegacyFixture(path.join(stage, 'games', 'legacy_fixture.xlsx'));
+  fs.writeFileSync(path.join(stage, 'games', 'index.json'), JSON.stringify({ files: ['legacy_fixture.xlsx'] }));
   fs.copyFileSync(path.join(REPO_HB, 'data', 'roster.xlsx'), path.join(stage, 'data', 'roster.xlsx'));
   fs.writeFileSync(path.join(stage, 'data', 'team.json'), JSON.stringify(TEST_TEAM));
   const PX = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
@@ -55,12 +76,20 @@ const openRosterMgmt = async p => {
   await goTab(p, 'roster');
   if (await p.$eval('#manage-roster-card', e => e.classList.contains('collapsed'))) await p.click('#mroster-toggle');
 };
-const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+const PHONE_W = 375;
+const noOverflow = (p, w) => p.evaluate(dw => document.documentElement.scrollWidth <= dw + 4, w || PHONE_W);
+const COURT_MAX = 7;
+let _probePage = null;
+const pidOf = num => _probePage.evaluate(n => {
+  const p = (JSON.parse(localStorage.getItem('afahb.current.v1') || '{}').rosterSnap || []).find(x => x.num === n);
+  return p ? p.pid : '';
+}, num);
 
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: apolloChrome() });
   const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 950 } });
   const page = await ctx.newPage();
+  _probePage = page;
   const pageErrors = [];
   page.on('pageerror', e => pageErrors.push(String(e)));
   page.on('dialog', d => d.accept());
@@ -294,14 +323,27 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
     const img = document.querySelector('#sb-opp-logo-slot img');
     return !!img && img.naturalWidth > 0;
   }));
-  ok('13 player cards on the floor', await page.$$eval('#pgrid .pcard', c => c.length) === 13);
+  ok('only the seven on the court get cards', await page.$$eval('#pgrid .pcard', c => c.length) === COURT_MAX);
+  ok('the rest of the squad is on the bench', await page.$$eval('#bench-strip .bchip', c => c.length) === 6);
+  ok('the court header counts the floor', /7 \/ 7 on the court/.test(await page.$eval('#court-count', e => e.textContent)));
+  ok('scoring buttons are words, not initials', await page.$$eval('.pcard[data-num="7"] .btns button', b => {
+    const t = b.map(x => x.textContent);
+    return t.includes('GOAL') && t.includes('TURNOVER') && t.includes('2 MIN DRAWN') && !t.includes('TO') && !t.includes('A');
+  }));
+  ok('a court player has no SAVED button — saves belong to the keeper',
+    await page.$$eval('.pcard[data-num="7"] .btns button', b => !b.some(x => x.dataset.ev === 'saved')));
   const gkSelTxt = await page.$eval('#gk-sel', s => (s.options[s.selectedIndex] || {}).textContent || '');
   ok('keeper defaults to first GK (Corn)', /Corn/.test(gkSelTxt), gkSelTxt);
 
   console.log('— log events —');
   const hit = async (num, ev) => page.click('.pcard[data-num="' + num + '"] button[data-ev="' + ev + '"]');
+  const benchIn = async num => page.click('#bench-strip .bchip[data-pid="' + await pidOf(num) + '"]');
+  const courtOut = async num => page.click('.pcard[data-num="' + num + '"] .subout');
   await hit(7, 'goal'); await hit(7, 'goal');            // Jack 2 goals
   await hit(11, 'ast');                                  // RJ assist
+  for (const [out, inn] of [[3, 23], [4, 18], [6, 21]]) { await courtOut(out); await benchIn(inn); }
+  ok('subs swap the court and the bench', await page.$$eval('#pgrid .pcard', c => c.length) === COURT_MAX
+    && !!(await page.$('.pcard[data-num="23"]')) && !!(await page.$('#bench-strip .bchip')));
   await hit(23, 'g7');                                   // Ryan 7m goal
   await hit(23, 'd7');                                   // Ryan drew the 7
   await hit(18, 'p2');                                   // Evan 2 min
@@ -319,7 +361,7 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   const jackRow = await page.$$eval('#livebox tr', rows => {
     for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
       if (c[1] === 'Jack') return c; } return null; });
-  ok('Jack row: 2 goals on 2 shots', jackRow && jackRow[3] === '2' && jackRow[4] === '2', JSON.stringify(jackRow));
+  ok('Jack row: 2 goals on 2 shots', jackRow && jackRow[4] === '2' && jackRow[5] === '2', JSON.stringify(jackRow));
   const gk1 = await page.$eval('#livegk', e => e.textContent);
   ok('keeper table credits Corn', /Corn/.test(gk1));
 
@@ -371,6 +413,34 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   ok('chip says 7m missed (off target), not saved', /7m missed/.test(gmChips) && /off target/.test(gmChips), gmChips);
   ok('missed marker drawn gray', await page.$$eval('#gm-marks circle', c => c.some(x => x.getAttribute('fill') === '#c8cbd2')));
 
+  console.log('— the goal map is per keeper, and an empty net is not the keeper\'s —');
+  const gm2 = await page.$('#goalmap'); const gb2 = await gm2.boundingBox();
+  await page.mouse.click(gb2.x + gb2.width * 0.4, gb2.y + gb2.height * 0.45);
+  await page.waitForSelector('#gm-pop', { state: 'visible' });
+  await page.click('#gm-opp-btn');
+  await page.fill('#gm-onum', '4');
+  await page.click('#gm-outcome button[data-v="goal"]');
+  ok('the floated-keeper box appears for a conceded goal',
+    await page.$eval('#gm-float-wrap', e => getComputedStyle(e).display) !== 'none');
+  await page.check('#gm-float');
+  await page.click('#gm-save');
+  await sleep(120);
+  const cornRow = () => page.$$eval('#livegk tr', rows => {
+    for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
+      if (c[1] === 'Corn') return c; } return null; });
+  const cr2 = await cornRow();
+  ok('an empty-net goal is logged but kept out of the keeper\'s save %',
+    cr2 && cr2[9] === '1' && cr2[5] === '1' && cr2[4] === '66.7%', JSON.stringify(cr2));
+  const filterOpts = await page.$$eval('#gm-filter option', o => o.map(x => x.textContent));
+  ok('the map can be filtered to one keeper', filterOpts.some(t => /Shots faced by #1 Corn/.test(t)), filterOpts.join(' | '));
+  const allShots = await page.$$eval('#gm-marks circle', c => c.length);
+  await page.selectOption('#gm-filter', { label: 'Air Force shots' });
+  await sleep(120);
+  const afaShots = await page.$$eval('#gm-marks circle', c => c.length);
+  ok('filtering to Air Force shots hides the shots faced', afaShots < allShots && afaShots > 0, afaShots + ' of ' + allShots);
+  await page.selectOption('#gm-filter', 'all');
+  await sleep(120);
+
   console.log('— mid-game renumber keeps stats (pid keying) —');
   await openRosterMgmt(page);
   await page.evaluate(() => {
@@ -388,14 +458,21 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   const jr2 = await page.$$eval('#livebox tr', rows => {
     for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
       if (c[1] === 'Jack') return c; } return null; });
-  ok('Jack keeps his 2 goals under the new number', jr2 && jr2[0] === '17' && jr2[3] === '2', JSON.stringify(jr2));
+  ok('Jack keeps his 2 goals under the new number', jr2 && jr2[0] === '17' && jr2[4] === '2', JSON.stringify(jr2));
   ok('scoreboard unchanged by the renumber (3–1)', await page.$eval('#sb-us', e => e.textContent) === '3');
 
-  console.log('— clock —');
+  console.log('— clock counts down, and playing time runs with it —');
+  const clk0 = await page.$eval('#sb-clock', e => e.textContent);
+  ok('the clock starts at a full period, not zero', clk0 === '30:00', clk0);
   await page.click('#btn-clock');
-  await sleep(2300);
-  const clk = await page.$eval('#sb-clock', e => e.textContent);
-  ok('clock runs', clk !== '00:00', clk);
+  await sleep(2400);
+  const clk1 = await page.$eval('#sb-clock', e => e.textContent);
+  const toSec = t => (+t.split(':')[0]) * 60 + (+t.split(':')[1]);
+  ok('the clock counts DOWN', toSec(clk1) < toSec(clk0) && toSec(clk0) - toSec(clk1) <= 6, clk0 + ' -> ' + clk1);
+  const onMins = await page.$eval('.pcard[data-num="17"] .statline', e => e.textContent);
+  ok('a player on the court banks playing time', /^[0-9]+:[0-9]{2} played/.test(onMins) && !/^0:00 played/.test(onMins), onMins);
+  const benchMins = await page.$eval('#bench-strip .bchip .mn', e => e.textContent);
+  ok('a player on the bench does not', benchMins === '0:00', benchMins);
   await page.click('#btn-clock');
 
   console.log('— live export —');
@@ -410,23 +487,27 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
     JSON.stringify(['Game Info', 'Player Stats', 'Goalkeepers', 'Team Totals', 'Play-by-Play', 'Shot Map', 'Roster']), wb1.SheetNames.join(','));
   const info = Object.fromEntries(XLSX.utils.sheet_to_json(wb1.Sheets['Game Info'], { header: 1 }).filter(r => r.length >= 2));
   ok('Game Info: opponent Army, format mark', info['Opponent'] === 'Army' && info['Format'] === 'AFA-HB-1');
-  ok('Game Info: score 3-1', info['Air Force goals'] === 3 && info['Opponent goals'] === 1);
+  ok('Game Info: score 3-2 (the empty-net goal still counts on the board)',
+    info['Air Force goals'] === 3 && info['Opponent goals'] === 2, info['Air Force goals'] + '-' + info['Opponent goals']);
   const ps = XLSX.utils.sheet_to_json(wb1.Sheets['Player Stats'], { header: 1 });
   const jack = ps.find(r => r[1] === 'Jack');
-  ok('Player Stats: Jack 2 goals / 2 shots / 100%', jack && jack[3] === 2 && jack[4] === 2 && jack[5] === 100, JSON.stringify(jack));
+  ok('Player Stats: Jack 2 goals / 2 shots / 100%', jack && jack[4] === 2 && jack[5] === 2 && jack[6] === 100, JSON.stringify(jack));
+  ok('Player Stats carries minutes played', typeof jack[3] === 'number' && jack[3] > 0, String(jack && jack[3]));
   const ryan = ps.find(r => r[1] === 'Ryan');
-  ok("Player Stats: Ryan 7's Made 1, Drawn 1, Missed 1", ryan && ryan[11] === 1 && ryan[10] === 1 && ryan[12] === 1, JSON.stringify(ryan));
+  ok("Player Stats: Ryan 7's Made 1, Drawn 1, Missed 1", ryan && ryan[12] === 1 && ryan[11] === 1 && ryan[13] === 1, JSON.stringify(ryan));
   ok('Player Stats: renumbered Jack exports as #17', jack && jack[0] === 17, JSON.stringify(jack));
   const rj = ps.find(r => r[1] === 'RJ');
-  ok("Player Stats: RJ assist 1, 2's Drawn 1", rj && rj[6] === 1 && rj[14] === 1, JSON.stringify(rj));
+  ok("Player Stats: RJ assist 1, 2's Drawn 1", rj && rj[7] === 1 && rj[15] === 1, JSON.stringify(rj));
   const gks = XLSX.utils.sheet_to_json(wb1.Sheets['Goalkeepers'], { header: 1 });
   const corn = gks.find(r => r[1] === 'Corn');
-  ok('Goalkeepers: Corn 3 faced / 2 saves / 1 GA / 1 after-whistle', corn && corn[2] === 3 && corn[3] === 2 && corn[5] === 1 && corn[8] === 1, JSON.stringify(corn));
+  ok('Goalkeepers: Corn 3 faced / 2 saves / 1 GA / 1 after-whistle / 1 empty net',
+    corn && corn[2] === 3 && corn[3] === 2 && corn[5] === 1 && corn[8] === 1 && corn[9] === 1, JSON.stringify(corn));
   const sm = XLSX.utils.sheet_to_json(wb1.Sheets['Shot Map'], { header: 1 });
-  ok('Shot Map has both surviving mapped shots with coords', sm.length === 3 && typeof sm[1][8] === 'number', JSON.stringify(sm[1]));
+  ok('Shot Map has every surviving mapped shot with coords', sm.length === 4 && typeof sm[1][8] === 'number', JSON.stringify(sm[1]));
+  ok('Shot Map notes the empty-net goal', sm.slice(1).some(r => r[10] === 'EMPTY NET'), JSON.stringify(sm.slice(1).map(r => r[10])));
   ok('Shot Map records the 7m as Missed, not Saved', sm.slice(1).some(r => r[6] === 'Missed' && r[7] === 'Y'), JSON.stringify(sm.slice(1).map(r => [r[6], r[7]])));
   const rosterSheet = XLSX.utils.sheet_to_json(wb1.Sheets['Roster'], { header: 1 });
-  ok('Roster sheet carries 13 players', rosterSheet.length === 14);
+  ok('Roster sheet carries the squad picked for this game', rosterSheet.length === 14);
   await page.screenshot({ path: path.join(SCRATCH, 'shot_game.png'), fullPage: true });
 
   console.log('— end game —');
@@ -447,32 +528,32 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
     await page.setInputFiles('#file-in', LEGACY);
     await sleep(700);
     const st = await page.$eval('#import-status', e => e.textContent);
-    ok('legacy workbook imports 4 played games (empty sheet skipped)', /4 game\(s\) imported/.test(st), st);
+    ok('legacy workbook imports its played games, skipping the unplayed sheet', /2 game\(s\) imported/.test(st), st);
     const seasonTxt = await page.$eval('#season-players', e => e.textContent);
     const jrow = await page.$$eval('#season-players tr', rows => {
       for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
         if (c[1] === 'Jack') return c; } return null; });
     // Jack: live 2 + legacy 10+12+6+14 = 44
-    ok('season merges live + legacy: Jack 44 goals, 5 GP', jrow && jrow[3] === '44' && jrow[2] === '5', JSON.stringify(jrow));
+    ok('season merges live + legacy: Jack 13 goals over 3 games', jrow && jrow[4] === '13' && jrow[2] === '3', JSON.stringify(jrow));
     const glRows = await page.$$eval('#gamelog tr', r => r.length);
-    ok('game log lists 5 games', glRows === 6, glRows);
+    ok('game log lists every game', glRows === 4, glRows);
     const krow = await page.$$eval('#season-gk tr', rows => {
       for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
         if (c[1] === 'Corn') return c; } return null; });
     // Corn: live faced 3 sv 2 + legacy 48/18 + 29/22 + 13/5 + 42/11 = faced 135, sv 58
-    ok('season GK: Corn 135 faced / 58 saves', krow && krow[3] === '135' && krow[4] === '58', JSON.stringify(krow));
+    ok('season GK: Corn 38 faced / 16 saves', krow && krow[3] === '38' && krow[4] === '16', JSON.stringify(krow));
     // duplicate re-import is skipped
     await page.setInputFiles('#file-in', LEGACY);
     await sleep(600);
     const st2 = await page.$eval('#import-status', e => e.textContent);
-    ok('re-importing the same file skips duplicates', /4 duplicate\(s\) skipped/.test(st2), st2);
+    ok('re-importing the same file skips duplicates', /2 duplicate\(s\) skipped/.test(st2), st2);
     // a re-downloaded "(1)" copy must dedupe too — ids hash content, not filename
     const COPY = path.join(SCRATCH, 'Handball Stats (1).xlsx');
     fs.copyFileSync(LEGACY, COPY);
     await page.setInputFiles('#file-in', COPY);
     await sleep(600);
     const st3b = await page.$eval('#import-status', e => e.textContent);
-    ok('a renamed copy of the same file also dedupes', /4 duplicate\(s\) skipped/.test(st3b), st3b);
+    ok('a renamed copy of the same file also dedupes', /2 duplicate\(s\) skipped/.test(st3b), st3b);
   } else { console.log('  (legacy workbook not found — skipped)'); }
   await page.screenshot({ path: path.join(SCRATCH, 'shot_season.png'), fullPage: true });
 
@@ -488,7 +569,30 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
     JSON.stringify(['Season Summary', 'Player Totals', 'Goalkeeper Totals', 'Game Log']), wb2.SheetNames.join(','));
   const pt = XLSX.utils.sheet_to_json(wb2.Sheets['Player Totals'], { header: 1 });
   const jackT = pt.find(r => r[1] === 'Jack');
-  ok('report: Jack 44 goals over 5 GP', jackT && jackT[3] === 44 && jackT[2] === 5, JSON.stringify(jackT));
+  ok('report: Jack 13 goals over 3 GP', jackT && jackT[4] === 13 && jackT[2] === 3, JSON.stringify(jackT));
+
+  console.log('— the season filters by game time and by minutes played —');
+  const gameRows = () => page.$$eval('#gamelog tr', r => r.length);
+  await page.selectOption('#sf-range', 'range');
+  await page.fill('#sf-from', '2020-01-01');
+  await page.dispatchEvent('#sf-from', 'change');
+  await sleep(250);
+  ok('a date range keeps only the games that carry a date', await gameRows() === 2,
+    await page.$eval('#sf-note', e => e.textContent));
+  ok('the filter says what it is showing', /showing 1 of 3 games/.test(await page.$eval('#sf-note', e => e.textContent)),
+    await page.$eval('#sf-note', e => e.textContent));
+  await page.selectOption('#sf-range', 'all');
+  await sleep(250);
+  ok('clearing the range brings every game back', await gameRows() === 4);
+  const allPlayers = await page.$$eval('#season-players tr', r => r.length);
+  await page.fill('#sf-mins', '999');
+  await page.dispatchEvent('#sf-mins', 'change');
+  await sleep(250);
+  ok('a minutes floor drops players who did not play that long',
+    await page.$$eval('#season-players tr', r => r.length) < allPlayers);
+  await page.fill('#sf-mins', '0');
+  await page.dispatchEvent('#sf-mins', 'change');
+  await sleep(250);
 
   console.log('— round-trip into a clean browser —');
   const ctx2 = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 950 } });
@@ -511,11 +615,12 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   const jrow2 = await p2.$$eval('#season-players tr', rows => {
     for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
       if (c[1] === 'Jack') return c; } return null; });
-  ok('round-trip preserves Jack 2 goals', jrow2 && jrow2[3] === '2', JSON.stringify(jrow2));
+  ok('round-trip preserves Jack 2 goals', jrow2 && jrow2[4] === '2', JSON.stringify(jrow2));
   const krow2 = await p2.$$eval('#season-gk tr', rows => {
     for (const r of rows) { const c = Array.from(r.cells).map(x => x.textContent);
       if (c[1] === 'Corn') return c; } return null; });
-  ok('round-trip preserves Corn 2 saves + after-whistle', krow2 && krow2[4] === '2' && krow2[9] === '1', JSON.stringify(krow2));
+  ok('round-trip preserves Corn 2 saves, after-whistle and empty net',
+    krow2 && krow2[4] === '2' && krow2[9] === '1' && krow2[10] === '1', JSON.stringify(krow2));
   ok('round-trip tile record 1–0', /1–0/.test(await p2.$eval('#tiles', e => e.textContent)));
 
   console.log('— resume after reload (live game survives) —');
@@ -550,6 +655,37 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await p3.click('#home-resume');
   ok('resuming while locked asks for the password', await p3.$eval('#admin-modal', m => m.classList.contains('open')));
   await p3.click('#admin-cancel');
+
+  console.log('— the squad is picked when the game is created —');
+  const ctxQ = await browser.newContext({ viewport: { width: 1280, height: 950 } });
+  const pq = await ctxQ.newPage();
+  pq.on('dialog', d => d.accept());
+  await pq.goto(PAGE);
+  await pq.evaluate(() => localStorage.clear());
+  await pq.reload();
+  await unlockAdmin(pq);
+  await openRosterMgmt(pq);
+  await pq.click('#btn-demo-roster');
+  await goTab(pq, 'game');
+  ok('game setup lists the whole squad to pick from', await pq.$$eval('#g-roster label', l => l.length) === 12);
+  const drop = ['14', '18', '21', '23', '99'];
+  for (const n of drop) await pq.evaluate(num => {
+    const lab = [...document.querySelectorAll('#g-roster label')].find(l => l.textContent.startsWith('#' + num + ' '));
+    if (lab) { const cb = lab.querySelector('input'); cb.checked = false; cb.dispatchEvent(new Event('change')); }
+  }, n);
+  ok('the count follows the picks', /8 of 12 dressed/.test(await pq.$eval('#g-roster-count', e => e.textContent)),
+    await pq.$eval('#g-roster-count', e => e.textContent));
+  await pq.fill('#g-opp', 'Navy');
+  await pq.click('#btn-start');
+  await pq.waitForSelector('#scoreboard', { state: 'visible' });
+  const inGame = await pq.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem('afahb.current.v1') || '{}');
+    return { squad: (g.rosterSnap || []).length, nums: (g.rosterSnap || []).map(p => p.num).sort((a, b) => a - b) };
+  });
+  ok('only the picked players are in the game', inGame.squad === 8 && !inGame.nums.includes(23), JSON.stringify(inGame));
+  ok('the court fills from the picked squad, the rest sit', await pq.$$eval('#pgrid .pcard', c => c.length) === COURT_MAX
+    && await pq.$$eval('#bench-strip .bchip', c => c.length) === 1);
+  await ctxQ.close();
 
   console.log('— guards refuse dishonest states —');
   const ctx4 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
@@ -606,6 +742,14 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   const postStrip = await readStrip(pp);
   ok('after the game his card carries GP 1, GOALS 2, ASSISTS 1',
     JSON.stringify(postStrip) === JSON.stringify(['GP=1', 'GOALS=2', 'ASSISTS=1']), JSON.stringify(postStrip));
+  const ovr = await pp.evaluate(() => {
+    const c = [...document.querySelectorAll('#team-cards .bbcard')].find(x => x.textContent.includes('Tierney'));
+    const o = c && c.querySelector('.ovr .n');
+    const other = [...document.querySelectorAll('#team-cards .bbcard')].find(x => x.textContent.includes('Cavanaugh'));
+    return { n: o ? +o.textContent : null, noGames: !!(other && other.querySelector('.ovr')) };
+  });
+  ok('an overall is computed for a player with games', ovr.n != null && ovr.n > 40 && ovr.n <= 99, JSON.stringify(ovr));
+  ok('a profile with no games played gets no overall at all', ovr.noGames === false);
   ok('no page errors while stats attach', ppErr.length === 0, ppErr.join(' | '));
   await ctxP.close();
 
@@ -614,6 +758,9 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   // root before this probe and kills it after (spawning it from inside Node is
   // blocked in some sandboxes; an absent server fails loudly right here)
   const ctx5 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+  // hermetic: the page unions its games/index.json manifest with a live GitHub
+  // API listing, and this test is about the staged copy, not the real repo
+  await ctx5.route('https://api.github.com/**', r => r.abort());
   const p5 = await ctx5.newPage();
   const p5err = []; p5.on('pageerror', e => p5err.push(String(e)));
   await p5.goto('http://127.0.0.1:8123/');
@@ -622,10 +769,10 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await goTab(p5, 'season');
   await p5.waitForFunction(() => /game/.test(document.getElementById('repo-status').textContent), undefined, { timeout: 20000 }).catch(() => {});
   const rs = await p5.$eval('#repo-status', e => e.textContent);
-  ok('committed game files load automatically for a visitor', /4 game/.test(rs), rs);
-  ok('tiles show the legacy record 2–2 with zero clicks', /2–2/.test(await p5.$eval('#tiles', e => e.textContent)),
+  ok('committed game files load automatically for a visitor', /2 game/.test(rs), rs);
+  ok('tiles show the committed record with zero clicks', /0–2/.test(await p5.$eval('#tiles', e => e.textContent)),
     (await p5.$eval('#tiles', e => e.textContent)).slice(0, 60));
-  ok('game log carries the four legacy games', await p5.$$eval('#gamelog tr', r => r.length) === 5);
+  ok('game log carries the committed games', await p5.$$eval('#gamelog tr', r => r.length) === 3);
   await p5.waitForFunction(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length > 0, undefined, { timeout: 10000 }).catch(() => {});
   ok('the committed team roster auto-loads (12 names)',
     await p5.evaluate(() => JSON.parse(localStorage.getItem('afahb.roster.v1') || '[]').length) === 12);
@@ -664,12 +811,12 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await p6.goto(PAGE);
   await p6.evaluate(() => localStorage.clear());
   await p6.reload();
-  ok('phone: welcome page has no sideways scroll', await noOverflow(p6));
+  ok('phone: welcome page has no sideways scroll', await noOverflow(p6, PHONE_W));
   await p6.screenshot({ path: path.join(SCRATCH, 'shot_mobile_home.png'), fullPage: true });
   await unlockAdmin(p6);
   await openRosterMgmt(p6);
   await p6.click('#btn-demo-roster');
-  ok('phone: team page has no sideways scroll', await noOverflow(p6));
+  ok('phone: team page has no sideways scroll', await noOverflow(p6, PHONE_W));
   ok('phone: captain ribbon label fully visible at phone width', await ribbonInside(p6));
   await goTab(p6, 'game');
   await p6.fill('#g-opp', 'Navy');
@@ -677,12 +824,18 @@ const noOverflow = p => p.evaluate(() => document.documentElement.scrollWidth <=
   await p6.waitForSelector('#scoreboard', { state: 'visible' });
   await p6.click('.pcard[data-num="7"] button[data-ev="goal"]');
   ok('phone: tap logs a goal', await p6.$eval('#sb-us', e => e.textContent) === '1');
-  ok('phone: live game has no sideways scroll', await noOverflow(p6));
+  /* Measured against the DEVICE width, never window.innerWidth — that grows to
+     fit overflowing content under emulation, so the old check could not fail:
+     an 8-column button grid made a 594px card on a 375px phone and passed. */
+  const widest = await p6.evaluate(() => Math.max(0, ...[...document.querySelectorAll('#pgrid .pcard')]
+    .map(c => c.getBoundingClientRect().width)));
+  ok('phone: a player card fits the screen', widest <= PHONE_W + 4, Math.round(widest) + 'px card on a ' + PHONE_W + 'px phone');
+  ok('phone: live game has no sideways scroll', await noOverflow(p6, PHONE_W));
   await p6.screenshot({ path: path.join(SCRATCH, 'shot_mobile_game.png'), fullPage: true });
   await goTab(p6, 'gallery');
-  ok('phone: gallery has no sideways scroll', await noOverflow(p6));
+  ok('phone: gallery has no sideways scroll', await noOverflow(p6, PHONE_W));
   await goTab(p6, 'season');
-  ok('phone: season has no sideways scroll', await noOverflow(p6));
+  ok('phone: season has no sideways scroll', await noOverflow(p6, PHONE_W));
 
   ok('no page errors anywhere', pageErrors.length === 0 && p2err.length === 0 && p5err.length === 0 && p6err.length === 0,
     pageErrors.concat(p2err, p5err, p6err).join(' | '));

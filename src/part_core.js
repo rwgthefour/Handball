@@ -98,6 +98,8 @@ const EV = {
   d2:     { team: 'AFA', lab: 'drew a 2-minute', pl: 1 },
   yc:     { team: 'AFA', lab: 'yellow card',     pl: 1 },
   rc:     { team: 'AFA', lab: 'RED CARD',        pl: 1 },
+  subin:  { team: 'AFA', lab: 'on the court', pl: 1, sub: 1 },
+  subout: { team: 'AFA', lab: 'to the bench',  pl: 1, sub: 1 },
   timeout:{ team: 'AFA', lab: 'team timeout' },
   note:   { team: 'AFA', lab: 'note' },
   ogoal:  { team: 'OPP', lab: 'GOAL',            gk: 1 },
@@ -113,17 +115,20 @@ const EV = {
   orc:    { team: 'OPP', lab: 'RED CARD' },
   otimeout:{ team: 'OPP', lab: 'team timeout' },
 };
+/* Words, not initials — a scorekeeper should never decode a label mid-play.
+   A SAVED shot is not on this list: saves belong to the keeper, and a shot the
+   keeper stopped is logged on the goal map, where its location is the point. */
 const PLAYER_BTNS = [
-  ['goal', 'GOAL'], ['saved', 'SV'], ['miss', 'MS'], ['blocked', 'BL'],
-  ['g7', '7G'], ['x7', '7X'], ['d7', '7D'],
-  ['ast', 'A'], ['to', 'TO'], ['stl', 'ST'], ['blk', 'BK'],
-  ['p2', "2'"], ['d2', '2D'], ['yc', 'YC'], ['rc', 'RC'],
+  ['goal', 'GOAL'], ['miss', 'MISSED'], ['blocked', 'BLOCKED'],
+  ['g7', '7M GOAL'], ['x7', '7M MISS'], ['d7', '7M DRAWN'],
+  ['ast', 'ASSIST'], ['to', 'TURNOVER'], ['stl', 'STEAL'], ['blk', 'BLOCK'],
+  ['p2', '2 MIN'], ['d2', '2 MIN DRAWN'], ['yc', 'YELLOW'], ['rc', 'RED'],
 ];
 
 /* ---------- derivation: events -> stats ---------- */
 function blankP() { return { fgG:0, fgSv:0, fgMs:0, fgBl:0, g7:0, x7:0, d7:0,
   ast:0, to:0, stl:0, blk:0, p2:0, d2:0, yc:0, rc:0 }; }
-function blankK() { return { ga:0, sv:0, ms:0, ga7:0, sv7:0, ms7:0, savew:0 }; }
+function blankK() { return { ga:0, sv:0, ms:0, ga7:0, sv7:0, ms7:0, savew:0, en:0 }; }
 
 function derive(g) {
   const P = new Map(), K = new Map();       // by player pid ('-' = uncredited keeper)
@@ -145,7 +150,10 @@ function derive(g) {
       const kn = e.gk != null ? e.gk : '-';
       if (!K.has(kn)) K.set(kn, blankK());
       const k = K.get(kn);
-      if (e.type === 'ogoal') k.ga++; else if (e.type === 'og7') { k.ga++; k.ga7++; }
+      // a goal scored while the keeper was floated is an empty net, not a goal
+      // they let in — it is recorded, and kept out of GA and save %
+      if (e.float && (e.type === 'ogoal' || e.type === 'og7')) k.en++;
+      else if (e.type === 'ogoal') k.ga++; else if (e.type === 'og7') { k.ga++; k.ga7++; }
       else if (e.type === 'osave') k.sv++; else if (e.type === 'os7') { k.sv++; k.sv7++; }
       else if (e.type === 'omiss') k.ms++; else if (e.type === 'o7miss') k.ms7++;
       else if (e.type === 'osavew') k.savew++;
@@ -175,7 +183,7 @@ function kRow(num, name, k) {
   const faced = k.ga + k.sv + k.ms + k.ms7;
   return { num, name, faced, sv: k.sv, ga: k.ga,
     pct: (k.sv + k.ga) ? k.sv / (k.sv + k.ga) : null,
-    f7: k.ga7 + k.sv7 + k.ms7, sv7: k.sv7, savew: k.savew };
+    f7: k.ga7 + k.sv7 + k.ms7, sv7: k.sv7, savew: k.savew, en: k.en || 0 };
 }
 const fmtPct = v => v == null ? '—' : (100 * v).toFixed(1) + '%';
 /* how a map/shot event reads as an outcome — prefer the scout's explicit
@@ -249,6 +257,7 @@ function fillCardPicker() {
 function dressed() { return roster.filter(p => p.active !== false); }
 function saveRoster() {
   lsSet(LS.roster, roster);
+  gamePick = null; renderGamePick();          // the squad picker follows the roster
   // the cards sit above this list on the same page and carry the stat strip,
   // so a roster change has to repaint them (linkRosterToCards writes straight
   // to storage instead of calling this, which is what keeps render loop-free)
@@ -483,6 +492,21 @@ function teamStatsIndex() {
              onRoster: new Set(roster.map(p => nameKey(p.name))) };
   } catch (e) { return null; }
 }
+/* An OVERALL is a summary of SEASON PRODUCTION — nothing else. Each part is
+   linear to a cap so one huge game cannot run the number away, and a profile
+   with no games played gets none at all rather than a floor of 40. */
+function overallOf(sp, sk) {
+  const cap = (v, per, max) => Math.max(0, Math.min(max, max * (v / per)));
+  if (sk && sk.faced && sk.gp) {
+    const pct = (sk.sv + sk.ga) ? sk.sv / (sk.sv + sk.ga) : 0;
+    return Math.round(40 + cap(pct, 0.45, 40) + cap(sk.sv / sk.gp, 12, 14));
+  }
+  if (!sp || !sp.gp) return null;
+  const pct = sp.shots ? sp.goals / sp.shots : 0;
+  return Math.round(40
+    + cap(sp.goals / sp.gp, 5, 26) + cap(sp.ast / sp.gp, 3, 12) + cap(pct, 0.65, 12)
+    + cap((sp.stl + sp.blk) / sp.gp, 2, 6) - cap(sp.to / sp.gp, 3, 6));
+}
 function bbCard(c, idx) {
   const ph = el('div', { cls: 'ph' });
   const src = cardPhotoSrc(c);
@@ -491,6 +515,9 @@ function bbCard(c, idx) {
     el('img', { src: LOGOS.airforce, alt: '' }),
     el('span', { text: 'PHOTO COMING SOON' })));
   if (c.badge) ph.appendChild(el('div', { cls: 'badge', text: 'TEAM CAPTAIN' }));
+  const ovr = idx ? overallOf(idx.P.get(nameKey(c.name)), idx.K.get(nameKey(c.name))) : null;
+  if (ovr != null) ph.appendChild(el('div', { cls: 'ovr', title: 'Overall — computed from this season\'s production' },
+    el('div', { cls: 'n', text: String(ovr) }), el('div', { cls: 't', text: 'OVR' })));
   const frame = el('div', { cls: 'frame' }, ph,
     el('div', { cls: 'nm', text: c.name }),
     el('div', { cls: 'role', text: c.role || '' }));
@@ -794,6 +821,38 @@ $('#gal-reset').addEventListener('click', () => {
   renderGallery();
 });
 
+/* ---------- the squad for THIS game ----------
+   Picked at creation rather than inherited from a standing Dressed list, so a
+   travel squad or a scrimmage side is a decision made per game. */
+let gamePick = null;                    // Set of roster ids, null = everyone active
+function gameRosterPick() {
+  const active = roster.filter(p => p.active !== false);
+  return gamePick ? active.filter(p => gamePick.has(p.id)) : active;
+}
+function renderGamePick() {
+  const host = $('#g-roster'); if (!host) return;
+  host.textContent = '';
+  const active = roster.filter(p => p.active !== false).slice().sort((a, b) => (a.num ?? 999) - (b.num ?? 999));
+  if (gamePick == null) gamePick = new Set(active.map(p => p.id));
+  for (const p of active) {
+    const on = gamePick.has(p.id);
+    const cb = el('input', { type: 'checkbox' }); cb.checked = on;
+    const lab = el('label', { cls: on ? 'on' : '' }, cb,
+      el('span', { text: (p.num != null ? '#' + p.num + ' ' : '') + p.name + (p.pos === 'GK' ? ' (GK)' : '') }));
+    cb.addEventListener('change', () => {
+      if (cb.checked) gamePick.add(p.id); else gamePick.delete(p.id);
+      renderGamePick();
+    });
+    host.appendChild(lab);
+  }
+  const n = gameRosterPick().length;
+  $('#g-roster-count').textContent = n + ' of ' + active.length + ' dressed';
+  if (!active.length) host.appendChild(el('span', { cls: 'small muted',
+    text: 'No players yet — add the squad on the TEAM page first.' }));
+}
+$('#g-roster-all').addEventListener('click', () => { gamePick = new Set(roster.filter(p => p.active !== false).map(p => p.id)); renderGamePick(); });
+$('#g-roster-none').addEventListener('click', () => { gamePick = new Set(); renderGamePick(); });
+
 /* ---------- game lifecycle ---------- */
 function newGameFromForm() {
   return {
@@ -807,21 +866,21 @@ function newGameFromForm() {
       halfLen: Math.max(5, +$('#g-halflen').value || 30),
     },
     half: 'H1', clock: { base: 0, at: null }, gk: null,
-    events: [], seq: 0,
-    rosterSnap: dressed().map(snapOf),
+    events: [], seq: 0, onCourt: [], mins: {}, courtSince: {},
+    rosterSnap: gameRosterPick().map(snapOf),
   };
 }
 $('#btn-start').addEventListener('click', () => {
-  if (!dressed().length) { toast('Add your roster first (ROSTER tab)'); $('#setup-hint').textContent = 'Add players on the ROSTER tab, then start the game.'; return; }
+  if (!gameRosterPick().length) { toast('Pick at least one player for this game'); $('#setup-hint').textContent = 'Add players on the ROSTER tab, then start the game.'; return; }
   // numbers are how a scout identifies players live; require unique ones at tip-off
-  const noNum = dressed().filter(p => p.num == null);
+  const noNum = gameRosterPick().filter(p => p.num == null);
   if (noNum.length) {
     $('#setup-hint').textContent = 'These dressed players need a jersey number before live tracking: ' +
       noNum.map(p => p.name).join(', ') + ' — add numbers on the ROSTER tab (or untick Dressed).';
     toast('Every dressed player needs a jersey number'); return;
   }
   const seen = new Map();
-  for (const p of dressed()) {
+  for (const p of gameRosterPick()) {
     if (seen.has(p.num)) {
       $('#setup-hint').textContent = 'Jersey #' + p.num + ' is worn by both ' + seen.get(p.num) + ' and ' + p.name + ' — fix it on the ROSTER tab.';
       toast('Duplicate jersey number #' + p.num); return;
@@ -829,14 +888,18 @@ $('#btn-start').addEventListener('click', () => {
     seen.set(p.num, p.name);
   }
   game = newGameFromForm();
-  const gk = dressed().find(p => p.pos === 'GK');
-  if (gk) game.gk = gk.id;
+  game.onCourt = startingSeven();
+  const gk = game.rosterSnap.find(p => p.pos === 'GK');
+  if (gk) game.gk = gk.pid;
   saveGame(); enterLiveMode();
   toast('Game started — good luck, Falcons!');
 });
 function saveGame() { if (game) lsSet(LS.cur, game); }
 
 function enterLiveMode() {
+  if (!game.onCourt) game.onCourt = startingSeven();     // resumed from before playing time
+  if (!game.mins) game.mins = {};
+  if (!game.courtSince) game.courtSince = {};
   $('#setup-card').style.display = 'none';
   $('#scoreboard').style.display = 'flex';
   $('#live-area').style.display = 'block';
@@ -846,6 +909,7 @@ function enterLiveMode() {
   refreshLive();
 }
 function exitLiveMode() {
+  gamePick = null; renderGamePick();          // next game picks its own squad
   $('#setup-card').style.display = 'block';
   $('#setup-card').classList.remove('collapsed');   // the next thing to do is set up a game
   $('#setup-arrow').textContent = '▾';
@@ -870,7 +934,7 @@ function addEvent(type, extra) {
   if (!game || game.done) return;
   const d = EV[type]; if (!d) return;
   const e = Object.assign({ id: uid(), seq: ++game.seq, type, half: game.half,
-    clock: fmtClock(clockSec()), ts: new Date().toISOString() }, extra || {});
+    clock: fmtClock(clockShown()), sec: clockSec(), ts: new Date().toISOString() }, extra || {});
   if (d.gk && e.gk === undefined) e.gk = game.gk;
   game.events.push(e);
   saveGame(); refreshLive();
@@ -901,13 +965,17 @@ $$('.opp-panel .btns button').forEach(b => b.addEventListener('click', () => add
 /* ---------- player grid ---------- */
 function buildPlayerGrid() {
   const grid = $('#pgrid'); grid.textContent = '';
-  const list = game.rosterSnap.slice().sort((a, b) => (a.num ?? 999) - (b.num ?? 999));
+  const byNum = game.rosterSnap.slice().sort((a, b) => (a.num ?? 999) - (b.num ?? 999));
+  const list = byNum.filter(p => isOnCourt(p.pid));
+  buildBench(byNum.filter(p => !isOnCourt(p.pid)));
   for (const p of list) {
     const card = el('div', { cls: 'pcard' + (p.pos === 'GK' ? ' gkon' : ''), 'data-pid': p.pid, 'data-num': p.num ?? '' });
     const hd = el('div', { cls: 'hd' },
       el('span', { cls: 'no', text: p.num != null ? '#' + p.num : '—' }),
       el('span', { cls: 'nm', text: p.name }),
-      el('span', { cls: 'pos', text: p.pos || '' }));
+      el('span', { cls: 'pos', text: p.pos || '' }),
+      el('button', { cls: 'subout', text: '↓ SUB', title: 'Send ' + p.name + ' to the bench',
+        onclick: () => subOut(p.pid) }));
     const sl = el('div', { cls: 'statline', text: '' });
     const btns = el('div', { cls: 'btns' });
     for (const [type, lab] of PLAYER_BTNS) {
@@ -921,7 +989,21 @@ function buildPlayerGrid() {
     card.appendChild(hd); card.appendChild(sl); card.appendChild(btns);
     grid.appendChild(card);
   }
-  $('#pgrid-hint').textContent = list.length ? '' : 'No dressed players — tick "Dressed" on the ROSTER tab.';
+  $('#pgrid-hint').textContent = list.length ? ''
+    : 'Nobody on the court — tap a player on the bench below to send them on.';
+  $('#court-count').textContent = list.length + ' / ' + COURT_MAX + ' on the court';
+}
+function buildBench(bench) {
+  const wrap = $('#bench-strip'); wrap.textContent = '';
+  for (const p of bench) {
+    wrap.appendChild(el('button', { cls: 'bchip' + (p.pos === 'GK' ? ' gk' : ''),
+      'data-pid': p.pid, title: 'Send ' + p.name + ' on',
+      onclick: () => subIn(p.pid) },
+      el('span', { cls: 'n', text: p.num != null ? '#' + p.num : '—' }),
+      el('span', { text: p.name }),
+      el('span', { cls: 'mn', text: fmtMins(minsOf(p.pid)) })));
+  }
+  $('#bench-hint').textContent = bench.length ? '' : 'Everyone dressed is on the court.';
 }
 function buildGkSel() {
   const sel = $('#gk-sel'); sel.textContent = '';
@@ -935,13 +1017,66 @@ function buildGkSel() {
   sel.onchange = () => { game.gk = sel.value === '' ? null : sel.value; saveGame(); };
 }
 
+/* ---------- who is on the court ----------
+   The scorekeeper sees the seven players actually on the floor, not the whole
+   squad — fewer cards to hunt through, and the same in/out record is what
+   playing time is measured from. Time banks in game.mins (seconds) and only
+   accrues while the CLOCK IS RUNNING, so a stoppage is not playing time. */
+const COURT_MAX = 7;
+const onCourt = () => (game && game.onCourt) || [];
+const isOnCourt = pid => onCourt().includes(pid);
+function bankCourt(pid) {
+  if (!game || !game.courtSince) return;
+  const t0 = game.courtSince[pid];
+  if (t0 == null) return;
+  game.mins[pid] = (game.mins[pid] || 0) + Math.max(0, (Date.now() - t0) / 1000);
+  delete game.courtSince[pid];
+}
+function openCourt(pid) {
+  if (!game.courtSince) game.courtSince = {};
+  if (game.clock.at != null && isOnCourt(pid) && game.courtSince[pid] == null) game.courtSince[pid] = Date.now();
+}
+function closeCourtIntervals() { for (const pid of Object.keys((game && game.courtSince) || {})) bankCourt(pid); }
+function openCourtIntervals() { for (const pid of onCourt()) openCourt(pid); }
+function minsIn(g, pid) {
+  if (!g) return 0;
+  const t0 = g.courtSince && g.courtSince[pid];
+  return ((g.mins && g.mins[pid]) || 0) + (t0 != null ? Math.max(0, (Date.now() - t0) / 1000) : 0);
+}
+function minsOf(pid) { return minsIn(game, pid); }
+const fmtMins = sec => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0');
+function subIn(pid) {
+  if (!game || isOnCourt(pid)) return;
+  if (onCourt().length >= COURT_MAX) { toast('Seven are on the court — sub someone out first'); return; }
+  game.onCourt = onCourt().concat([pid]);
+  openCourt(pid);
+  const p = snapByPid(pid);
+  if (p && p.pos === 'GK') { game.gk = pid; buildGkSel(); }   // the keeper on the floor is the keeper of record
+  addEvent('subin', { pid });
+  buildPlayerGrid(); refreshLive();
+}
+function subOut(pid) {
+  if (!game || !isOnCourt(pid)) return;
+  bankCourt(pid);
+  game.onCourt = onCourt().filter(x => x !== pid);
+  addEvent('subout', { pid });
+  buildPlayerGrid(); refreshLive();
+}
+function startingSeven() {                      // a keeper plus six, lowest numbers first
+  const list = game.rosterSnap.slice().sort((a, b) => (a.num ?? 999) - (b.num ?? 999));
+  const gk = list.find(p => p.pos === 'GK');
+  const rest = list.filter(p => p !== gk).slice(0, COURT_MAX - (gk ? 1 : 0));
+  return (gk ? [gk] : []).concat(rest).map(p => p.pid);
+}
+
 /* ---------- scoreboard / halves / clock ---------- */
 function buildHalfButtons() {
   const w = $('#sb-halves'); w.textContent = '';
   for (const h of HALVES) {
     const b = el('button', { text: h, onclick: () => {
       if (game.half === h) return;
-      if (clockSec() > 0 && !confirm('Switch to ' + HALF_LABEL[h] + '? The clock resets to 00:00.')) return;
+      if (clockSec() > 0 && !confirm('Switch to ' + HALF_LABEL[h] + '? The clock resets to a full period.')) return;
+      closeCourtIntervals();                   // playing time banks before the reset
       game.half = h; game.clock.base = 0; game.clock.at = null;
       addEvent('note', { note: 'Start of ' + HALF_LABEL[h] });
       refreshLive();
@@ -952,25 +1087,42 @@ function buildHalfButtons() {
 const fmtClock = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 /* The clock DERIVES from a timestamp anchor — a backgrounded tab or locked
    phone cannot freeze it, and the ticker below only paints, never mutates. */
-function clockSec() {
+function clockSec() {                       // elapsed — the internal, always-forward value
   if (!game) return 0;
   const c = game.clock;
   return Math.max(0, Math.floor(c.at != null ? c.base + (Date.now() - c.at) / 1000 : c.base));
 }
+/* The scoreboard counts DOWN, the way a hall clock does, and events are stamped
+   with the time REMAINING. Elapsed stays the internal quantity so playing time
+   and the running clock cannot disagree. */
+function halfLenSec() { return Math.max(1, (game && game.info.halfLen ? game.info.halfLen : 30)) * 60; }
+function clockShown() { return Math.max(0, halfLenSec() - clockSec()); }
 let clockTimer = null;
 function stopClockTimer() { if (clockTimer) { clearInterval(clockTimer); clockTimer = null; } }
 function startClockTicker() {
   stopClockTimer();
   clockTimer = setInterval(() => {
     const w = $('#sb-clock');
-    if (game && !w.querySelector('input')) w.textContent = fmtClock(clockSec());
+    if (game && !w.querySelector('input')) w.textContent = fmtClock(clockShown());
+    paintMinutes();
   }, 500);
+}
+function paintMinutes() {
+  if (!game) return;
+  for (const el2 of $$('#pgrid .pcard .mins')) {
+    const pid = el2.closest('.pcard').dataset.pid;
+    el2.textContent = fmtMins(minsOf(pid));
+  }
+  for (const chip of $$('#bench-strip .bchip')) {
+    const m = chip.querySelector('.mn');
+    if (m) m.textContent = fmtMins(minsOf(chip.dataset.pid));
+  }
 }
 function setClockRunning(run) {
   if (!game) return;
   const c = game.clock;
-  if (run && c.at == null) c.at = Date.now();
-  if (!run && c.at != null) { c.base = clockSec(); c.at = null; }
+  if (run && c.at == null) { c.at = Date.now(); openCourtIntervals(); }
+  if (!run && c.at != null) { c.base = clockSec(); c.at = null; closeCourtIntervals(); }
   $('#btn-clock').textContent = c.at != null ? '❚❚ PAUSE CLOCK' : '▶ START CLOCK';
   saveGame();
 }
@@ -978,13 +1130,13 @@ $('#btn-clock').addEventListener('click', () => setClockRunning(game.clock.at ==
 $('#sb-clock').addEventListener('click', () => {
   const wrap = $('#sb-clock');
   if (wrap.querySelector('input')) return;         // already editing
-  const cur = fmtClock(clockSec());
+  const cur = fmtClock(clockShown());
   const inp = el('input', { value: cur, style: 'width:74px;font-size:18px;text-align:center' });
   wrap.textContent = ''; wrap.appendChild(inp); inp.focus(); inp.select();
   const commit = () => {
     const m = inp.value.match(/^(\d{1,2}):(\d{2})$/);
-    if (m) {
-      game.clock.base = (+m[1]) * 60 + (+m[2]);
+    if (m) {                                   // typed value is time REMAINING
+      game.clock.base = Math.max(0, halfLenSec() - ((+m[1]) * 60 + (+m[2])));
       if (game.clock.at != null) game.clock.at = Date.now();   // keep running from the new value
     }
     saveGame(); refreshLive();
@@ -1039,8 +1191,12 @@ function drawGmMarks() {
   g.textContent = '';
   const list = $('#gm-list'); list.textContent = '';
   if (!game) return;
+  gmFilterOpts();
+  let shown = 0, hidden = 0;
   for (const e of game.events) {
     if (e.x == null) continue;
+    if (!gmShows(e)) { hidden++; continue; }
+    shown++;
     const isAfa = EV[e.type].team === 'AFA';
     const col = isAfa ? '#2a78d6' : '#eb6834';
     const outcome = shotOutcome(e);
@@ -1054,14 +1210,18 @@ function drawGmMarks() {
     const tcol = outcome === 'goal' ? '#fff' : (outcome === 'saved' ? col : '#3a3d44');
     if (numTxt) g.appendChild(svgel('text', { x: cx, y: cy + 3.4, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 700, fill: tcol, text: numTxt }));
     if (pen) g.appendChild(svgel('text', { x: cx + 9, y: cy - 8, 'font-size': 9, 'font-weight': 800, fill: '#8a6502', text: 'P' }));
+    if (e.float) g.appendChild(svgel('text', { x: cx + 9, y: cy + 13, 'font-size': 8.5, 'font-weight': 800, fill: '#a03030', text: 'EN' }));
     // list chip
     const who = isAfa ? playerLabel(e.pid) : game.info.opponent + (e.onum ? ' #' + e.onum : '');
     const it = el('span', { cls: 'it' },
       el('span', { cls: 'dot', style: 'background:' + (outcome === 'missed' ? '#c8cbd2' : col) + (outcome === 'saved' ? ';background:#fff;border:2px solid ' + col : '') }),
-      el('span', { text: who + ' · ' + EV[e.type].lab + (pen ? ' · 7m' : '') + (e.res === 'missed' && pen && isAfa ? ' (off target)' : '') }),
+      el('span', { text: who + ' · ' + EV[e.type].lab + (pen ? ' · 7m' : '')
+        + (e.float ? ' · empty net' : '') + (e.res === 'missed' && pen && isAfa ? ' (off target)' : '') }),
       el('button', { text: '✕', title: 'Remove this shot', onclick: () => deleteEvent(e.id) }));
     list.appendChild(it);
   }
+  const c = $('#gm-count');
+  if (c) c.textContent = shown + ' shot' + (shown === 1 ? '' : 's') + (hidden ? ' shown · ' + hidden + ' hidden by the filter' : '');
 }
 $('#goalmap').addEventListener('click', ev => {
   if (!game || game.done) return;
@@ -1079,21 +1239,55 @@ function openGmPop(px, py) {
   for (const p of game.rosterSnap) sel.appendChild(el('option', { value: p.pid, text: '#' + (p.num ?? '—') + ' ' + p.name }));
   $$('#gm-outcome button').forEach(x => x.classList.toggle('on', x.dataset.v === 'goal'));
   $('#gm-pen').checked = false;
+  $('#gm-float').checked = false;
   $('#gm-onum').value = '';
+  gmFilterOpts(); gmSyncFloat();
   pop.style.display = 'block';
   const wrap = $('#goalmap-wrap').getBoundingClientRect();
   pop.style.left = Math.min(px, wrap.width - 260) + 'px';
   pop.style.top = Math.min(py + 8, wrap.height - 40) + 'px';
 }
 $('#gm-cancel').addEventListener('click', () => { $('#gm-pop').style.display = 'none'; gmPending = null; });
+/* The map answers "what did THIS keeper face" — a shot chart for all keepers at
+   once tells a keeper nothing about their own corners. */
+function gmFilterOpts() {
+  const sel = $('#gm-filter'); if (!sel || !game) return;
+  const keep = sel.value;
+  sel.textContent = '';
+  sel.appendChild(el('option', { value: 'all', text: 'All shots' }));
+  sel.appendChild(el('option', { value: 'afa', text: 'Air Force shots' }));
+  const keepers = game.rosterSnap.filter(p => p.pos === 'GK');
+  for (const k of keepers) sel.appendChild(el('option', { value: 'gk:' + k.pid,
+    text: 'Shots faced by ' + (k.num != null ? '#' + k.num + ' ' : '') + k.name }));
+  sel.appendChild(el('option', { value: 'opp', text: 'Shots faced — all keepers' }));
+  sel.value = [...sel.options].some(o => o.value === keep) ? keep : 'all';
+  if (!sel._wired) { sel._wired = true; sel.addEventListener('change', drawGmMarks); }
+}
+function gmShows(e) {
+  const v = ($('#gm-filter') && $('#gm-filter').value) || 'all';
+  const mine = EV[e.type].team === 'AFA';
+  if (v === 'all') return true;
+  if (v === 'afa') return mine;
+  if (v === 'opp') return !mine;
+  if (v.startsWith('gk:')) return !mine && e.gk === v.slice(3);
+  return true;
+}
 $$('#gm-team button').forEach(b => b.addEventListener('click', () => {
   $$('#gm-team button').forEach(x => x.classList.toggle('on', x === b));
   const afa = b.dataset.v === 'AFA';
   $('#gm-afa-shooter').style.display = afa ? '' : 'none';
   $('#gm-opp-shooter').style.display = afa ? 'none' : '';
+  gmSyncFloat();
 }));
+function gmSyncFloat() {
+  const oppGoal = $('#gm-team button.on').dataset.v === 'OPP'
+    && $('#gm-outcome button.on').dataset.v === 'goal';
+  $('#gm-float-wrap').style.display = oppGoal ? 'flex' : 'none';
+  if (!oppGoal) $('#gm-float').checked = false;
+}
 $$('#gm-outcome button').forEach(b => b.addEventListener('click', () => {
   $$('#gm-outcome button').forEach(x => x.classList.toggle('on', x === b));
+  gmSyncFloat();
 }));
 $('#gm-save').addEventListener('click', () => {
   if (!gmPending) return;
@@ -1105,6 +1299,7 @@ $('#gm-save').addEventListener('click', () => {
   else type = pen ? (outcome === 'goal' ? 'og7' : outcome === 'saved' ? 'os7' : 'o7miss')
              : (outcome === 'goal' ? 'ogoal' : outcome === 'saved' ? 'osave' : 'omiss');
   const extra = { x: gmPending.x, y: gmPending.y, res: outcome };
+  if ($('#gm-float').checked && !afa && outcome === 'goal') extra.float = true;   // empty net
   if (afa) extra.pid = $('#gm-player').value;
   else { const on = $('#gm-onum').value.trim(); if (on) extra.onum = on; }
   addEvent(type, extra);
@@ -1128,7 +1323,7 @@ function refreshLive() {
   $('#sb-them-to').textContent = Math.max(0, 3 - d.team.toThem);
   $('#sb-opp-name').textContent = game.info.opponent.toUpperCase();
   const cw = $('#sb-clock');
-  if (!cw.querySelector('input')) cw.textContent = fmtClock(clockSec());
+  if (!cw.querySelector('input')) cw.textContent = fmtClock(clockShown());
   $('#btn-clock').textContent = game.clock.at != null ? '❚❚ PAUSE CLOCK' : '▶ START CLOCK';
   $$('#sb-halves button').forEach(b => b.classList.toggle('on', b.textContent === game.half));
   // opponent logo
@@ -1140,9 +1335,11 @@ function refreshLive() {
   for (const card of $$('#pgrid .pcard')) {
     const p = d.P.get(card.dataset.pid) || blankP();
     const r = pRow(null, '', '', p);
-    card.querySelector('.statline').textContent =
-      'G ' + r.goals + ' · Sh ' + r.shots + ' · A ' + r.ast + ' · ST ' + r.stl +
-      ' · TO ' + r.to + " · 2' " + r.p2;
+    const sl = card.querySelector('.statline'); sl.textContent = '';
+    sl.appendChild(el('span', { cls: 'mins', text: fmtMins(minsOf(card.dataset.pid)) }));
+    const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+    sl.appendChild(document.createTextNode(' played · ' + pl(r.goals, 'goal') + ' · ' + pl(r.shots, 'shot') +
+      ' · ' + pl(r.ast, 'assist') + ' · ' + pl(r.stl, 'steal') + ' · ' + pl(r.to, 'turnover')));
   }
   renderLiveBox(d); renderLog(); drawGmMarks();
 }
@@ -1158,17 +1355,18 @@ function statTable(target, headers, rows) {
   }
   target.textContent = ''; target.appendChild(t);
 }
-const P_HEADERS = [{ lab: '#' }, { lab: 'Player', l: 1 }, { lab: 'Pos' }, { lab: 'Goals' }, { lab: 'Shots' },
+const P_HEADERS = [{ lab: '#' }, { lab: 'Player', l: 1 }, { lab: 'Pos' }, { lab: 'Min' }, { lab: 'Goals' }, { lab: 'Shots' },
   { lab: 'Shot %' }, { lab: 'Ast' }, { lab: 'Stl' }, { lab: 'Blk' }, { lab: 'TO' },
   { lab: '7m Drawn' }, { lab: '7m Made' }, { lab: '7m Miss' }, { lab: "2 Min" }, { lab: '2 Drawn' },
   { lab: 'YC' }, { lab: 'RC' }, { lab: 'Pts' }];
-function pCells(r) {
-  return [r.num ?? '', r.name, r.pos, r.goals, r.shots, fmtPct(r.pct), r.ast, r.stl, r.blk, r.to,
-    r.d7, r.g7, r.x7, r.p2, r.d2, r.yc, r.rc, r.pts];
+function pCells(r, mins) {
+  return [r.num ?? '', r.name, r.pos, mins == null ? '' : fmtMins(mins), r.goals, r.shots, fmtPct(r.pct),
+    r.ast, r.stl, r.blk, r.to, r.d7, r.g7, r.x7, r.p2, r.d2, r.yc, r.rc, r.pts];
 }
 const K_HEADERS = [{ lab: '#' }, { lab: 'Keeper', l: 1 }, { lab: 'Shots Faced' }, { lab: 'Saves' },
-  { lab: 'Save %' }, { lab: 'GA' }, { lab: '7m Faced' }, { lab: '7m Saved' }, { lab: 'After Whistle' }];
-function kCells(r) { return [r.num ?? '', r.name, r.faced, r.sv, fmtPct(r.pct), r.ga, r.f7, r.sv7, r.savew]; }
+  { lab: 'Save %' }, { lab: 'Goals Allowed' }, { lab: '7m Faced' }, { lab: '7m Saved' },
+  { lab: 'Saves After Whistle' }, { lab: 'Empty Net' }];
+function kCells(r) { return [r.num ?? '', r.name, r.faced, r.sv, fmtPct(r.pct), r.ga, r.f7, r.sv7, r.savew, r.en]; }
 
 function renderLiveBox(d) {
   const rows = [];
@@ -1176,17 +1374,17 @@ function renderLiveBox(d) {
   for (const p of game.rosterSnap) {
     const raw = d.P.get(p.pid); if (!raw) continue;
     for (const k in tot) tot[k] += raw[k];
-    rows.push({ cells: pCells(pRow(p.num, p.name, p.pos, raw)) });
+    rows.push({ cells: pCells(pRow(p.num, p.name, p.pos, raw), minsOf(p.pid)) });
   }
-  rows.sort((a, b) => (b.cells[3] - a.cells[3]) || (b.cells[17] - a.cells[17]));
-  if (rows.length) rows.push({ cls: 'tot', cells: pCells(pRow(null, 'TEAM', '', tot)) });
+  rows.sort((a, b) => (b.cells[4] - a.cells[4]) || (b.cells[18] - a.cells[18]));
+  if (rows.length) rows.push({ cls: 'tot', cells: pCells(pRow(null, 'TEAM', '', tot), null) });
   statTable($('#livebox'), P_HEADERS, rows);
   const krows = [];
   for (const [pid, k] of d.K) {
     const sp = pid === '-' ? null : snapByPid(pid);
     krows.push({ cells: kCells(kRow(sp ? sp.num : null, sp ? sp.name : GK_NONE, k)) });
   }
-  statTable($('#livegk'), K_HEADERS, krows.length ? krows : [{ cells: ['', 'No shots faced yet', '', '', '', '', '', '', ''] }]);
+  statTable($('#livegk'), K_HEADERS, krows.length ? krows : [{ cells: ['', 'No shots faced yet', '', '', '', '', '', '', '', ''] }]);
 }
 function renderLog() {
   const wrap = $('#elog'); wrap.textContent = '';
@@ -1224,10 +1422,15 @@ function refreshGameUI() {
   const used = new Set();
   for (const e of game.events) { if (e.pid != null) used.add(e.pid); if (e.gk != null) used.add(e.gk); }
   if (game.gk != null) used.add(game.gk);
-  const cur = dressed().map(snapOf);
-  const curIds = new Set(cur.map(p => p.pid));
-  const retained = game.rosterSnap.filter(p => used.has(p.pid) && !curIds.has(p.pid));
-  game.rosterSnap = cur.concat(retained);
+  // this game's squad was picked at creation: keep it, refresh the details, and
+  // let a late arrival ticked as Dressed join the bench
+  const live = new Map(dressed().map(p => [p.id, p]));
+  const have = new Set(game.rosterSnap.map(p => p.pid));
+  for (const p of game.rosterSnap) {
+    const r = live.get(p.pid);
+    if (r) { p.num = r.num; p.name = r.name; p.pos = r.pos; p.year = r.year || ''; }
+  }
+  for (const [id, r] of live) if (!have.has(id)) game.rosterSnap.push(snapOf(r));
   saveGame();
   buildPlayerGrid(); buildGkSel(); refreshLive();
 }
@@ -1251,6 +1454,7 @@ $('#btn-endgame').addEventListener('click', () => {
   const d = derive(game);
   if (!confirm('End the game vs ' + game.info.opponent + ' at ' + d.us + '–' + d.them + '?\n\nThe game is archived in this browser and the Excel workbook downloads now.')) return;
   setClockRunning(false);
+  closeCourtIntervals();                     // the last shift counts
   game.done = true; game.endedAt = new Date().toISOString();
   exportGameXlsx(game);                       // the file downloads no matter what storage does
   archived.push(game);

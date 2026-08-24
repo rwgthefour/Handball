@@ -1,6 +1,6 @@
 {
  "v": 1,
- "ts": 1787341891613,
+ "ts": 1787605299887,
  "cards": [
   {
    "id": "c-cav",
@@ -79,19 +79,6 @@
    "home": "Washington D.C.",
    "major": "Data Science & Operations Research",
    "career": "Operations Research"
-  },
-  {
-   "id": "mspjhfzp5wigqg",
-   "sec": "player",
-   "name": "C1C Ronald U. Macauley",
-   "role": "",
-   "badge": false,
-   "photo": "",
-   "sq": "",
-   "pos": "",
-   "home": "",
-   "major": "",
-   "career": ""
   },
   {
    "id": "mspja2r6vpq5ue",

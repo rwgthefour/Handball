@@ -61,7 +61,7 @@ function gameWorkbook(g) {
 
   // Player Stats — every dressed player gets a row (the sheet doubles as the
   // game roster); import skips the all-zero rows so GP stays honest
-  const pHead = ['No', 'Player', 'Pos', 'Goals', 'Shots', 'Shot %', 'Assists', 'Steals', 'Blocks',
+  const pHead = ['No', 'Player', 'Pos', 'Minutes', 'Goals', 'Shots', 'Shot %', 'Assists', 'Steals', 'Blocks',
     'Turnovers', "7's Drawn", "7's Made", "7's Missed", '2 Min', "2's Drawn", 'Yellow', 'Red', 'Points'];
   const pAoa = [pHead];
   const tot = blankP();
@@ -69,11 +69,12 @@ function gameWorkbook(g) {
     const raw = d.P.get(p.pid) || blankP();
     for (const k in tot) tot[k] += raw[k];
     const r = pRow(p.num, p.name, p.pos, raw);
-    pAoa.push([r.num ?? '', r.name, r.pos, r.goals, r.shots, r.pct == null ? '' : +(100 * r.pct).toFixed(1),
+    pAoa.push([r.num ?? '', r.name, r.pos, +(minsIn(g, p.pid) / 60).toFixed(2),
+      r.goals, r.shots, r.pct == null ? '' : +(100 * r.pct).toFixed(1),
       r.ast, r.stl, r.blk, r.to, r.d7, r.g7, r.x7, r.p2, r.d2, r.yc, r.rc, r.pts]);
   }
   const tr = pRow(null, 'TEAM', '', tot);
-  pAoa.push(['', 'TEAM', '', tr.goals, tr.shots, tr.pct == null ? '' : +(100 * tr.pct).toFixed(1),
+  pAoa.push(['', 'TEAM', '', '', tr.goals, tr.shots, tr.pct == null ? '' : +(100 * tr.pct).toFixed(1),
     tr.ast, tr.stl, tr.blk, tr.to, tr.d7, tr.g7, tr.x7, tr.p2, tr.d2, tr.yc, tr.rc, tr.pts]);
   const wsP = XLSX.utils.aoa_to_sheet(pAoa);
   wsP['!cols'] = [{ wch: 5 }, { wch: 18 }, { wch: 5 }].concat(pHead.slice(3).map(() => ({ wch: 9 })));
@@ -81,13 +82,13 @@ function gameWorkbook(g) {
 
   // Goalkeepers
   const kHead = ['No', 'Keeper', 'Shots Faced', 'Saves', 'Save %', 'Goals Allowed',
-    "7's Faced", "7's Saved", 'Saves After Whistle'];
+    "7's Faced", "7's Saved", 'Saves After Whistle', 'Empty Net Goals'];
   const kAoa = [kHead];
   for (const [pid, k] of d.K) {
     const sp = pid === '-' ? null : g.rosterSnap.find(x => x.pid === pid);
     const r = kRow(sp ? sp.num : null, sp ? sp.name : GK_NONE, k);
     kAoa.push([r.num ?? '', r.name, r.faced, r.sv, r.pct == null ? '' : +(100 * r.pct).toFixed(1),
-      r.ga, r.f7, r.sv7, r.savew]);
+      r.ga, r.f7, r.sv7, r.savew, r.en]);
   }
   const wsK = XLSX.utils.aoa_to_sheet(kAoa);
   wsK['!cols'] = [{ wch: 5 }, { wch: 22 }].concat(kHead.slice(2).map(() => ({ wch: 12 })));
@@ -133,7 +134,7 @@ function gameWorkbook(g) {
   XLSX.utils.book_append_sheet(wb, wsPb, 'Play-by-Play');
 
   // Shot Map — Result comes from the scout's explicit outcome (e.res)
-  const smAoa = [['#', 'Half', 'Clock', 'Team', 'No', 'Player', 'Result', '7m?', 'X %', 'Y %',
+  const smAoa = [['#', 'Half', 'Clock', 'Team', 'No', 'Player', 'Result', '7m?', 'X %', 'Y %', 'Note',
     '(X/Y are % of the goal-map image, from the keeper\'s left)']];
   let n = 0;
   for (const e of g.events) {
@@ -145,7 +146,7 @@ function gameWorkbook(g) {
     smAoa.push([n, e.half, e.clock, isAfa ? 'Air Force' : g.info.opponent,
       isAfa ? (sp ? sp.num ?? '' : '') : (e.onum || ''), isAfa ? (sp ? sp.name : '') : g.info.opponent,
       outcome.charAt(0).toUpperCase() + outcome.slice(1),
-      ['g7', 'x7', 'og7', 'os7', 'o7miss'].includes(e.type) ? 'Y' : '', e.x, e.y, '']);
+      ['g7', 'x7', 'og7', 'os7', 'o7miss'].includes(e.type) ? 'Y' : '', e.x, e.y, e.float ? 'EMPTY NET' : '']);
   }
   const wsSm = XLSX.utils.aoa_to_sheet(smAoa);
   wsSm['!cols'] = [{ wch: 4 }, { wch: 5 }, { wch: 7 }, { wch: 14 }, { wch: 4 }, { wch: 14 }, { wch: 8 }, { wch: 5 }, { wch: 7 }, { wch: 7 }, { wch: 40 }];
@@ -224,8 +225,8 @@ $('#roster-file').addEventListener('change', async ev => {
    players and the importer skips all-zero rows, so the same game
    reads the same from the archive and from its own export.
    ================================================================ */
-const P_FIELDS = ['goals', 'shots', 'ast', 'stl', 'blk', 'to', 'd7', 'g7', 'x7', 'p2', 'd2', 'yc', 'rc'];
-const K_FIELDS = ['faced', 'sv', 'ga', 'f7', 'sv7', 'savew'];
+const P_FIELDS = ['mins', 'goals', 'shots', 'ast', 'stl', 'blk', 'to', 'd7', 'g7', 'x7', 'p2', 'd2', 'yc', 'rc'];
+const K_FIELDS = ['faced', 'sv', 'ga', 'f7', 'sv7', 'savew', 'en'];
 
 function normFromLive(g) {   // archived games -> season record
   const d = derive(g);
@@ -233,13 +234,15 @@ function normFromLive(g) {   // archived games -> season record
   for (const p of g.rosterSnap) {
     const raw = d.P.get(p.pid); if (!raw) continue;
     const r = pRow(p.num, p.name, p.pos, raw);
-    players.push({ name: p.name, num: p.num, goals: r.goals, shots: r.shots, ast: r.ast, stl: r.stl,
+    players.push({ name: p.name, num: p.num, mins: +(minsIn(g, p.pid) / 60).toFixed(2),
+      goals: r.goals, shots: r.shots, ast: r.ast, stl: r.stl,
       blk: r.blk, to: r.to, d7: r.d7, g7: r.g7, x7: r.x7, p2: r.p2, d2: r.d2, yc: r.yc, rc: r.rc });
   }
   for (const [pid, k] of d.K) {
     const sp = pid === '-' ? null : g.rosterSnap.find(x => x.pid === pid);
     const r = kRow(sp ? sp.num : null, sp ? sp.name : GK_NONE, k);
-    keepers.push({ name: sp ? sp.name : GK_NONE, num: r.num, faced: r.faced, sv: r.sv, ga: r.ga, f7: r.f7, sv7: r.sv7, savew: r.savew });
+    keepers.push({ name: sp ? sp.name : GK_NONE, num: r.num, faced: r.faced, sv: r.sv, ga: r.ga,
+      f7: r.f7, sv7: r.sv7, savew: r.savew, en: r.en });
   }
   return { id: g.id, source: 'this browser', date: g.info.date, opponent: g.info.opponent,
     ha: g.info.ha, comp: g.info.comp, result: d.us > d.them ? 'W' : d.us < d.them ? 'L' : 'T',
@@ -258,14 +261,14 @@ function parseOurFormat(wb, fname) {
     const c = { no: col('No'), name: col('Player'), goals: col('Goals'), shots: col('Shots'),
       ast: col('Assists'), stl: col('Steals'), blk: col('Blocks'), to: col('Turnovers'),
       d7: col("7's Drawn"), g7: col("7's Made"), x7: col("7's Missed"), p2: col('2 Min'),
-      d2: col("2's Drawn"), yc: col('Yellow'), rc: col('Red') };
+      d2: col("2's Drawn"), yc: col('Yellow'), rc: col('Red'), mins: col('Minutes') };
     for (const r of pRows.slice(1)) {
       if (!r || c.name < 0) continue;
       const name = String(r[c.name] ?? '').trim();
       if (!name || name === 'TEAM') continue;
       const g = ix => ix >= 0 ? num0(r[ix]) : 0;
       const p = { name, num: (() => { const n = Number(r[c.no]); return Number.isFinite(n) ? n : null; })(),
-        goals: g(c.goals), shots: g(c.shots), ast: g(c.ast), stl: g(c.stl), blk: g(c.blk), to: g(c.to),
+        mins: g(c.mins), goals: g(c.goals), shots: g(c.shots), ast: g(c.ast), stl: g(c.stl), blk: g(c.blk), to: g(c.to),
         d7: g(c.d7), g7: g(c.g7), x7: g(c.x7), p2: g(c.p2), d2: g(c.d2), yc: g(c.yc), rc: g(c.rc) };
       if (P_FIELDS.some(f => p[f])) players.push(p);      // all-zero row = dressed, didn't record — not a GP
     }
@@ -274,14 +277,15 @@ function parseOurFormat(wb, fname) {
   if (kRows.length) {
     const col = headerCols(kRows);
     const c = { no: col('No'), name: col('Keeper'), faced: col('Shots Faced'), sv: col('Saves'),
-      ga: col('Goals Allowed'), f7: col("7's Faced"), sv7: col("7's Saved"), savew: col('Saves After Whistle') };
+      ga: col('Goals Allowed'), f7: col("7's Faced"), sv7: col("7's Saved"),
+      savew: col('Saves After Whistle'), en: col('Empty Net Goals') };
     for (const r of kRows.slice(1)) {
       if (!r || c.name < 0) continue;
       const name = String(r[c.name] ?? '').trim();
       if (!name) continue;
       const g = ix => ix >= 0 ? num0(r[ix]) : 0;
       const k = { name, num: (() => { const n = Number(r[c.no]); return Number.isFinite(n) ? n : null; })(),
-        faced: g(c.faced), sv: g(c.sv), ga: g(c.ga), f7: g(c.f7), sv7: g(c.sv7), savew: g(c.savew) };
+        faced: g(c.faced), sv: g(c.sv), ga: g(c.ga), f7: g(c.f7), sv7: g(c.sv7), savew: g(c.savew), en: g(c.en) };
       if (K_FIELDS.some(f => k[f])) keepers.push(k);
     }
   }
@@ -322,7 +326,7 @@ function parseLegacy(wb, fname) {
       const name = String(r[off] ?? '').trim();
       if (!name) continue;
       const g = (ix) => ix >= 0 ? num0(r[ix]) : 0;
-      players.push({ name, num: null, goals: g(c.goals), shots: g(c.shots), ast: g(c.ast), stl: g(c.stl),
+      players.push({ name, num: null, mins: 0, goals: g(c.goals), shots: g(c.shots), ast: g(c.ast), stl: g(c.stl),
         blk: g(c.blk), to: g(c.to), d7: g(c.d7), g7: g(c.g7), x7: g(c.x7),
         p2: g(c.w2), d2: g(c.d2), yc: 0, rc: 0 });
     }
@@ -338,7 +342,7 @@ function parseLegacy(wb, fname) {
         const g = (ix) => ix >= 0 ? num0(r[ix]) : 0;
         const faced = g(kc.faced), sv = g(kc.sv);
         keepers.push({ name, num: null, faced, sv, ga: Math.max(0, faced - sv),
-          f7: g(kc.f7), sv7: g(kc.sv7), savew: g(kc.savew) });
+          f7: g(kc.f7), sv7: g(kc.sv7), savew: g(kc.savew), en: 0 });
       }
     }
     if (!players.length && !keepers.length) continue;

@@ -227,8 +227,36 @@ function chartCard(title, sub, legend) {
 const nameKey = s => String(s || '').trim().toLowerCase();
 let sortP = { col: 'goals', dir: -1 }, sortK = { col: 'sv', dir: -1 };
 
+let seasonFilter = { range: 'all', from: '', to: '', minMins: 0 };
+function filteredSeasonGames() {
+  let g = allSeasonGames();
+  if (seasonFilter.range === 'range') {
+    if (seasonFilter.from) g = g.filter(x => (x.date || '') >= seasonFilter.from);
+    if (seasonFilter.to) g = g.filter(x => (x.date || '') <= seasonFilter.to);
+  } else if (seasonFilter.range !== 'all') {
+    g = g.slice(-Math.max(1, +seasonFilter.range || 1));
+  }
+  return g;
+}
+function wireSeasonFilter() {
+  const r = $('#sf-range'), f = $('#sf-from'), t = $('#sf-to'), m = $('#sf-mins');
+  if (!r || r._wired) return;
+  r._wired = true;
+  const sync = () => {
+    seasonFilter = { range: r.value, from: f.value, to: t.value, minMins: Math.max(0, +m.value || 0) };
+    $$('.sf-dates').forEach(e => { e.style.display = r.value === 'range' ? '' : 'none'; });
+    renderSeason();
+  };
+  [r, f, t, m].forEach(x => x.addEventListener('change', sync));
+}
 function renderSeason() {
-  const games = allSeasonGames();
+  wireSeasonFilter();
+  const games = filteredSeasonGames();
+  const total = allSeasonGames().length;
+  const note = $('#sf-note');
+  if (note) note.textContent = games.length === total
+    ? total + ' game(s)'
+    : 'showing ' + games.length + ' of ' + total + ' games' + (seasonFilter.minMins ? ' · players with ' + seasonFilter.minMins + '+ minutes' : '');
   $('#season-count').textContent = games.length + ' game(s) in view · ' + archived.length + ' saved in this browser · ' + seasonImports.length + ' from files';
   renderTiles(games); renderCharts(games); renderGameLog(games);
   renderSeasonPlayers(games); renderSeasonGK(games); renderStorageList();
@@ -239,17 +267,17 @@ function seasonAgg(games) {
   for (const g of games) {
     for (const p of g.players) {
       const k = nameKey(p.name);
-      if (!P.has(k)) P.set(k, { name: p.name, num: p.num, gp: 0, goals: 0, shots: 0, ast: 0, stl: 0, blk: 0, to: 0, d7: 0, g7: 0, x7: 0, p2: 0, d2: 0, yc: 0, rc: 0 });
+      if (!P.has(k)) P.set(k, { name: p.name, num: p.num, gp: 0, mins: 0, goals: 0, shots: 0, ast: 0, stl: 0, blk: 0, to: 0, d7: 0, g7: 0, x7: 0, p2: 0, d2: 0, yc: 0, rc: 0 });
       const a = P.get(k); a.gp++;
       if (p.num != null) a.num = p.num;
-      for (const f of ['goals', 'shots', 'ast', 'stl', 'blk', 'to', 'd7', 'g7', 'x7', 'p2', 'd2', 'yc', 'rc']) a[f] += p[f] || 0;
+      for (const f of ['mins', 'goals', 'shots', 'ast', 'stl', 'blk', 'to', 'd7', 'g7', 'x7', 'p2', 'd2', 'yc', 'rc']) a[f] += p[f] || 0;
     }
     for (const kp of g.keepers) {
       const k = nameKey(kp.name);
-      if (!K.has(k)) K.set(k, { name: kp.name, num: kp.num, gp: 0, faced: 0, sv: 0, ga: 0, f7: 0, sv7: 0, savew: 0 });
+      if (!K.has(k)) K.set(k, { name: kp.name, num: kp.num, gp: 0, faced: 0, sv: 0, ga: 0, f7: 0, sv7: 0, savew: 0, en: 0 });
       const a = K.get(k); a.gp++;
       if (kp.num != null) a.num = kp.num;
-      for (const f of ['faced', 'sv', 'ga', 'f7', 'sv7', 'savew']) a[f] += kp[f] || 0;
+      for (const f of ['faced', 'sv', 'ga', 'f7', 'sv7', 'savew', 'en']) a[f] += kp[f] || 0;
     }
   }
   return { P: Array.from(P.values()), K: Array.from(K.values()) };
@@ -336,6 +364,7 @@ function topScorerOf(g) {
 
 const SP_COLS = [
   { k: 'num', lab: '#' }, { k: 'name', lab: 'Player', l: 1 }, { k: 'gp', lab: 'GP' },
+  { k: 'mins', lab: 'Minutes' },
   { k: 'goals', lab: 'Goals' }, { k: 'shots', lab: 'Shots' }, { k: 'pct', lab: 'Shot %' },
   { k: 'gpg', lab: 'G/Gm' }, { k: 'ast', lab: 'Ast' }, { k: 'stl', lab: 'Stl' }, { k: 'blk', lab: 'Blk' },
   { k: 'to', lab: 'TO' }, { k: 'd7', lab: '7m Drawn' }, { k: 'g7', lab: '7m Made' }, { k: 'x7', lab: '7m Miss' },
@@ -345,7 +374,8 @@ function renderSeasonPlayers(games) {
   const { P } = seasonAgg(games);
   const rows = P.map(p => Object.assign({}, p, {
     pct: p.shots ? p.goals / p.shots : null,
-    gpg: p.gp ? p.goals / p.gp : 0, pts: p.goals + p.ast }));
+    gpg: p.gp ? p.goals / p.gp : 0, pts: p.goals + p.ast }))
+    .filter(p => (p.mins || 0) >= seasonFilter.minMins);
   rows.sort((a, b) => {
     const va = a[sortP.col], vb = b[sortP.col];
     if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
@@ -369,6 +399,7 @@ function renderSeasonPlayers(games) {
       let v = r[c.k];
       if (c.k === 'pct') v = fmtPct(v);
       else if (c.k === 'gpg') v = v.toFixed(1);
+      else if (c.k === 'mins') v = (v || 0).toFixed(0);
       else if (v == null) v = '';
       tr.appendChild(el('td', { text: String(v), cls: c.l ? 'l' : '' }));
     }
@@ -380,7 +411,8 @@ function renderSeasonPlayers(games) {
 const SK_COLS = [
   { k: 'num', lab: '#' }, { k: 'name', lab: 'Keeper', l: 1 }, { k: 'gp', lab: 'GP' },
   { k: 'faced', lab: 'Shots Faced' }, { k: 'sv', lab: 'Saves' }, { k: 'pct', lab: 'Save %' },
-  { k: 'ga', lab: 'GA' }, { k: 'f7', lab: '7m Faced' }, { k: 'sv7', lab: '7m Saved' }, { k: 'savew', lab: 'After Whistle' }];
+  { k: 'ga', lab: 'Goals Allowed' }, { k: 'f7', lab: '7m Faced' }, { k: 'sv7', lab: '7m Saved' },
+  { k: 'savew', lab: 'Saves After Whistle' }, { k: 'en', lab: 'Empty Net' }];
 function renderSeasonGK(games) {
   const { K } = seasonAgg(games);
   const rows = K.filter(k => nameKey(k.name) !== nameKey(GK_NONE))
@@ -437,7 +469,7 @@ function renderStorageList() {
 
 /* ---------- season report export ---------- */
 $('#btn-season-export').addEventListener('click', () => {
-  const games = allSeasonGames();
+  const games = filteredSeasonGames();
   if (!games.length) { toast('No season data to export yet'); return; }
   const wb = XLSX.utils.book_new();
   const w = games.filter(g => g.result === 'W').length, l = games.filter(g => g.result === 'L').length,
@@ -454,17 +486,17 @@ $('#btn-season-export').addEventListener('click', () => {
   const wsS = XLSX.utils.aoa_to_sheet(sum); wsS['!cols'] = [{ wch: 26 }, { wch: 22 }];
   XLSX.utils.book_append_sheet(wb, wsS, 'Season Summary');
   const { P, K } = seasonAgg(games);
-  const pAoa = [['No', 'Player', 'GP', 'Goals', 'Shots', 'Shot %', 'Goals per Game', 'Assists', 'Steals', 'Blocks', 'Turnovers',
+  const pAoa = [['No', 'Player', 'GP', 'Minutes', 'Goals', 'Shots', 'Shot %', 'Goals per Game', 'Assists', 'Steals', 'Blocks', 'Turnovers',
     "7's Drawn", "7's Made", "7's Missed", '2 Min', "2's Drawn", 'Yellow', 'Red', 'Points']];
   for (const p of P.slice().sort((a, b) => b.goals - a.goals))
-    pAoa.push([p.num ?? '', p.name, p.gp, p.goals, p.shots, p.shots ? +(100 * p.goals / p.shots).toFixed(1) : '',
+    pAoa.push([p.num ?? '', p.name, p.gp, +(p.mins || 0).toFixed(1), p.goals, p.shots, p.shots ? +(100 * p.goals / p.shots).toFixed(1) : '',
       p.gp ? +(p.goals / p.gp).toFixed(2) : '', p.ast, p.stl, p.blk, p.to, p.d7, p.g7, p.x7, p.p2, p.d2, p.yc, p.rc, p.goals + p.ast]);
   const wsP = XLSX.utils.aoa_to_sheet(pAoa);
   wsP['!cols'] = [{ wch: 5 }, { wch: 18 }].concat(pAoa[0].slice(2).map(() => ({ wch: 10 })));
   XLSX.utils.book_append_sheet(wb, wsP, 'Player Totals');
-  const kAoa = [['No', 'Keeper', 'GP', 'Shots Faced', 'Saves', 'Save %', 'Goals Allowed', "7's Faced", "7's Saved", 'Saves After Whistle']];
+  const kAoa = [['No', 'Keeper', 'GP', 'Shots Faced', 'Saves', 'Save %', 'Goals Allowed', "7's Faced", "7's Saved", 'Saves After Whistle', 'Empty Net Goals']];
   for (const k of K.filter(x => nameKey(x.name) !== nameKey(GK_NONE)).sort((a, b) => b.sv - a.sv))
-    kAoa.push([k.num ?? '', k.name, k.gp, k.faced, k.sv, (k.sv + k.ga) ? +(100 * k.sv / (k.sv + k.ga)).toFixed(1) : '', k.ga, k.f7, k.sv7, k.savew]);
+    kAoa.push([k.num ?? '', k.name, k.gp, k.faced, k.sv, (k.sv + k.ga) ? +(100 * k.sv / (k.sv + k.ga)).toFixed(1) : '', k.ga, k.f7, k.sv7, k.savew, k.en || 0]);
   const wsK = XLSX.utils.aoa_to_sheet(kAoa);
   wsK['!cols'] = [{ wch: 5 }, { wch: 18 }].concat(kAoa[0].slice(2).map(() => ({ wch: 12 })));
   XLSX.utils.book_append_sheet(wb, wsK, 'Goalkeeper Totals');
@@ -488,7 +520,7 @@ $('#btn-season-export').addEventListener('click', () => {
   else $('#home-team-photo').style.display = 'none';
   $('#sb-us-logo').src = LOGOS.airforce;
   $('#g-date').value = new Date().toISOString().slice(0, 10);
-  renderRoster(); renderSetupHint(); applyAdminUI();
+  renderRoster(); renderSetupHint(); applyAdminUI(); renderGamePick();
   if (game && !game.done) {
     enterLiveMode();   // a running clock keeps counting via its timestamp anchor
     if (adminOn) showTab('game');   // mid-game reload lands staff back on the floor

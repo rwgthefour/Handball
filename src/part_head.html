@@ -136,6 +136,30 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 .bbcard .cstats .l{color:#b9c6e8;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
 .rtable .lk{color:var(--afa-blue);font-size:10px;letter-spacing:.08em;font-weight:700;white-space:nowrap}
 .rtable .nmtxt{font-weight:650}
+.bench{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.bench .bhead{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mut);font-weight:700;margin-bottom:7px}
+#bench-strip{display:flex;flex-wrap:wrap;gap:7px}
+.bchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--steel);background:#fbfcfe;
+  padding:9px 12px;font-size:12.5px;font-weight:600;min-height:40px}
+.bchip:hover{border-color:var(--afa-blue);background:#eef3fc;color:var(--afa-blue)}
+.bchip.gk{border-left:3px solid #c9a227}
+.bchip .n{font-weight:800;color:var(--afa-blue);font-variant-numeric:tabular-nums}
+.bchip .mn{color:var(--ink-mut);font-size:11px;font-variant-numeric:tabular-nums}
+.pcard .subout{margin-left:6px;border:1px solid var(--steel);background:#fff;font-size:10px;font-weight:700;
+  color:var(--ink-mut);padding:3px 7px;letter-spacing:.06em}
+.pcard .subout:hover{border-color:var(--crit);color:var(--crit)}
+.gr-wrap{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.gr-head{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mut);font-weight:700;
+  margin-bottom:8px;display:flex;align-items:center;gap:10px}
+#g-roster{display:flex;flex-wrap:wrap;gap:6px}
+#g-roster label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--steel);background:#fbfcfe;
+  padding:7px 10px;font-size:12.5px;cursor:pointer;min-height:38px}
+#g-roster label.on{border-color:var(--afa-blue);background:#eef3fc;color:var(--afa-blue);font-weight:600}
+.bbcard .ovr{position:absolute;top:8px;right:8px;background:#0d1220;color:#f0d488;border:1px solid #c9a227;
+  width:46px;height:46px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.bbcard .ovr .n{font-size:19px;font-weight:800;line-height:1}
+.bbcard .ovr .t{font-size:7.5px;letter-spacing:.1em;color:#b9c6e8}
 #tm-list .tmrow{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
 #tm-list .tmrow .sec{font-size:10px;letter-spacing:.1em;color:var(--ink-mut);font-weight:700;width:52px}
 #tm-list .tmrow b{flex:1;min-width:140px}
@@ -229,11 +253,14 @@ details.help .bd b{color:var(--ink)}
 .pcard .nm{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcard .pos{margin-left:auto;font-size:10.5px;color:var(--ink-mut);letter-spacing:.08em;font-weight:700}
 .pcard .statline{font-size:11px;color:var(--ink-2);margin-bottom:7px;font-variant-numeric:tabular-nums}
-.pcard .btns{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-.pcard .btns button{padding:8px 0;border:1px solid var(--steel);background:#fbfcfe;
-  font-size:11px;font-weight:700;color:var(--ink-2);min-height:34px}
+/* the labels are words now, so the row WRAPS — a fixed eight-column grid cannot
+   shrink below its text and pushed the last buttons off the card on a phone */
+.pcard .btns{display:flex;flex-wrap:wrap;gap:4px}
+.pcard .btns button{flex:1 1 auto;padding:8px 7px;border:1px solid var(--steel);background:#fbfcfe;
+  font-size:10.5px;font-weight:700;color:var(--ink-2);min-height:36px;white-space:nowrap}
 .pcard .btns button:hover{border-color:var(--afa-blue);color:var(--afa-blue);background:#eef3fc}
-.pcard .btns button.goal{grid-column:span 2;background:var(--afa-blue);border-color:var(--afa-blue);color:#fff;font-size:12.5px}
+.pcard .btns button.goal{flex:1 0 100%;background:var(--afa-blue);border-color:var(--afa-blue);color:#fff;
+  font-size:13px;min-height:44px;letter-spacing:.08em}
 .pcard .btns button.goal:hover{background:var(--afa-blue-lt)}
 .pcard .btns button.warnb:hover{border-color:#b58402;color:#8a6502;background:#fdf6e3}
 .pcard .btns button.redb:hover{border-color:var(--crit);color:var(--crit);background:#fdeeee}
@@ -476,13 +503,21 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       <div class="fld"><label>Notes</label><input id="g-notes" placeholder="optional" style="width:220px"></div>
       <button class="btn pri" id="btn-start">START GAME</button>
     </div>
+    <div class="gr-wrap">
+      <div class="gr-head">Squad for this game
+        <span class="muted small" id="g-roster-count"></span>
+        <button class="btn" id="g-roster-all" style="padding:3px 10px;font-size:11px">ALL</button>
+        <button class="btn" id="g-roster-none" style="padding:3px 10px;font-size:11px">NONE</button>
+      </div>
+      <div id="g-roster"></div>
+    </div>
     <div class="hint" id="setup-hint"></div>
     </div>
   </div>
 
   <div id="live-area" style="display:none">
     <div class="card">
-      <h2>Air Force — tap a button to log it</h2>
+      <h2>On the court <span class="muted small" id="court-count" style="text-transform:none;letter-spacing:0"></span></h2>
       <div class="muted small" style="margin-bottom:8px">
         G goal · SV shot saved · MS shot missed · BL shot blocked · 7G 7-meter goal · 7X 7-meter missed ·
         7D 7-meter drawn · A assist · TO turnover · ST steal · BK block · 2' two-minute ·
@@ -490,6 +525,11 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       </div>
       <div class="pgrid" id="pgrid"></div>
       <div class="hint" id="pgrid-hint"></div>
+      <div class="bench">
+        <div class="bhead">Bench <span class="muted small">— tap to send a player on</span></div>
+        <div id="bench-strip"></div>
+        <div class="hint" id="bench-hint"></div>
+      </div>
     </div>
 
     <div class="card opp-panel">
@@ -521,6 +561,10 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
         whether it was a 7-meter. The marker shows the shooter's number, colored by team — filled = goal,
         hollow = saved, gray = missed. Map entries feed the box score automatically, so log each shot
         <b>either</b> here <b>or</b> with the buttons above, not both.</div>
+      <div class="row" style="margin:4px 0 8px">
+        <div class="fld"><label>Show</label><select id="gm-filter" style="min-width:230px"></select></div>
+        <span class="muted small" id="gm-count"></span>
+      </div>
       <div id="goalmap-wrap">
         <svg id="goalmap" viewBox="0 0 360 250" role="img" aria-label="Handball goal shot map"></svg>
         <div class="gm-pop" id="gm-pop">
@@ -533,6 +577,8 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
             <button data-v="goal" class="on">GOAL</button><button data-v="saved">SAVED</button><button data-v="missed">MISSED</button>
           </div>
           <label class="chk"><input type="checkbox" id="gm-pen"> 7-meter (penalty)</label>
+          <label class="chk" id="gm-float-wrap" style="display:none"><input type="checkbox" id="gm-float">
+            keeper was floated (empty net)</label>
           <div class="acts">
             <button class="btn pri" id="gm-save">LOG SHOT</button>
             <button class="btn" id="gm-cancel">CANCEL</button>
@@ -713,6 +759,23 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   </div>
 
   <div id="season-body">
+    <div class="card" id="season-filter-card">
+      <div class="row">
+        <div class="fld"><label>Games</label>
+          <select id="sf-range">
+            <option value="all">All games</option>
+            <option value="5">Last 5 games</option>
+            <option value="10">Last 10 games</option>
+            <option value="range">Date range…</option>
+          </select></div>
+        <div class="fld sf-dates" style="display:none"><label>From</label><input type="date" id="sf-from"></div>
+        <div class="fld sf-dates" style="display:none"><label>To</label><input type="date" id="sf-to"></div>
+        <div class="fld"><label>Minimum minutes played</label>
+          <input type="number" id="sf-mins" min="0" step="1" value="0" style="width:90px"></div>
+        <div class="spacer"></div>
+        <span class="muted small" id="sf-note"></span>
+      </div>
+    </div>
     <div class="tiles" id="tiles"></div>
     <div class="chartgrid" id="charts"></div>
     <div class="card" style="margin-top:14px">
