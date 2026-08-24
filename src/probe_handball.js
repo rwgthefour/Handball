@@ -108,6 +108,19 @@ const pidOf = num => _probePage.evaluate(n => {
 
   console.log('— welcome page, menu, admin wall —');
   ok('opens on the welcome page', await page.$eval('#tab-home', e => e.classList.contains('on')));
+  await page.click('#menu-btn');
+  await page.click('#menu button[data-tab="about"]');
+  const about = await page.evaluate(() => ({
+    on: document.getElementById('tab-about').classList.contains('on'),
+    paras: document.querySelectorAll('#tab-about .about-wrap p').length,
+    crest: (document.getElementById('about-crest') || {}).naturalWidth > 0,
+    cta: (document.querySelector('.about-cta') || {}).href || '',
+  }));
+  ok('ABOUT is a page of its own, with the three-paragraph description',
+    about.on && about.paras === 3 && about.crest, JSON.stringify(about));
+  ok('…and it points at the giving page',
+    /falcon-funder\/pages\/usafa-team-handball-club/.test(about.cta), about.cta);
+  await goTab(page, 'home');
   ok('with no games yet, the report block stays out of the way',
     await page.$eval('#home-recap', e => getComputedStyle(e).display) === 'none');
   ok('with no games yet, the stream stays out of the way',

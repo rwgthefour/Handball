@@ -633,6 +633,7 @@ $('#btn-season-export').addEventListener('click', () => {
 (function boot() {
   $('#crest').src = LOGOS.airforce;
   $('#home-crest').src = LOGOS.airforce;
+  $('#about-crest').src = LOGOS.airforce;
   if (LOGOS.teamphoto) $('#home-team-photo').src = LOGOS.teamphoto;
   else $('#home-team-photo').style.display = 'none';
   $('#sb-us-logo').src = LOGOS.airforce;
