@@ -863,6 +863,14 @@ const pidOf = num => _probePage.evaluate(n => {
   });
   ok('an overall is computed for a player with games', ovr.n != null && ovr.n > 40 && ovr.n <= 99, JSON.stringify(ovr));
   ok('a profile with no games played gets no overall at all', ovr.noGames === false);
+  const kRule = await pp.evaluate(() => ({
+    cbOneShot: cardIsKeeper({ name: 'x', pos: 'Center Back' }, { faced: 1, sv: 1 }),
+    cbAsEmergencyKeeper: cardIsKeeper({ name: 'x', pos: 'Center Back' }, { faced: 28, sv: 5 }),
+    designatedKeeper: cardIsKeeper({ name: 'x', pos: 'Goalie' }, { faced: 0, sv: 0 }),
+  }));
+  ok('a field player who covered one shot is still a field player, but a real stint in goal counts',
+    kRule.cbOneShot === false && kRule.cbAsEmergencyKeeper === true && kRule.designatedKeeper === true,
+    JSON.stringify(kRule));
   ok('no page errors while stats attach', ppErr.length === 0, ppErr.join(' | '));
   await ctxP.close();
 

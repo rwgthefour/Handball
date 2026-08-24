@@ -530,6 +530,18 @@ function overallOf(sp, sk, keeper) {
     + cap(sp.goals / sp.gp, 5, 26) + cap(sp.ast / sp.gp, 3, 12) + cap(pct, 0.65, 12)
     + cap((sp.stl + sp.blk) / sp.gp, 2, 6) - cap(sp.to / sp.gp, 3, 6));
 }
+/* Which half of the game a card reports. A field player who covered a few shots
+   in goal is still a field player, so the designated position wins — from the
+   card, or from the stat roster when the card has no position line. Facing a
+   real volume of shots (an emergency keeper who actually played the role) is
+   the one thing that overrides it. */
+const EMERGENCY_KEEPER_SHOTS = 10;
+function cardIsKeeper(c, sk) {
+  const pos = c.pos || ((roster.find(p => nameKey(p.name) === nameKey(c.name)) || {}).pos || '');
+  if (pos) return posCodeFor(pos) === 'GK' || !!(sk && sk.faced >= EMERGENCY_KEEPER_SHOTS);
+  return !!(sk && sk.faced);
+}
+window.cardIsKeeper = cardIsKeeper;
 function bbCard(c, idx) {
   const ph = el('div', { cls: 'ph' });
   const src = cardPhotoSrc(c);
@@ -538,10 +550,7 @@ function bbCard(c, idx) {
     el('img', { src: LOGOS.airforce, alt: '' }),
     el('span', { text: 'PHOTO COMING SOON' })));
   if (c.badge) ph.appendChild(el('div', { cls: 'badge', text: 'TEAM CAPTAIN' }));
-  /* A field player who covered a few shots in goal is still a field player:
-     the CARD's own position decides which strip and which overall it gets,
-     and only a card with no position falls back to "did they face shots". */
-  const keeperCard = c.pos ? posCodeFor(c.pos) === 'GK' : true;
+  const keeperCard = cardIsKeeper(c, idx && idx.K.get(nameKey(c.name)));
   const ovr = idx ? overallOf(idx.P.get(nameKey(c.name)), idx.K.get(nameKey(c.name)), keeperCard) : null;
   if (ovr != null) ph.appendChild(el('div', { cls: 'ovr', title: 'Overall — computed from this season\'s production' },
     el('div', { cls: 'n', text: String(ovr) }), el('div', { cls: 't', text: 'OVR' })));
