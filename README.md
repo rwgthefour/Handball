@@ -5,7 +5,8 @@ the team baseball-card roster, and the season dashboard — plus, behind the adm
 wall, live game stat tracking with a tap-on-goal shot map and a full Excel
 workbook exported per game. Built mobile-first; works offline once loaded.
 
-Live at **https://rwgthefour.github.io/Handball/** — every push redeploys it.
+Live at **https://usafateamhandball.com** (GitHub Pages behind a custom domain; the
+old `rwgthefour.github.io/Handball/` link redirects) — every push redeploys it.
 
 ## How data flows (GitHub is the store)
 - `games/*.xlsx` — game workbooks committed here **load automatically for every
