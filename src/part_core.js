@@ -446,18 +446,36 @@ function renderStream() {
   if (!games.length) { host.style.display = 'none'; return; }
   host.style.display = 'block';
   host.appendChild(el('h2', { text: games.length === 1 ? 'Latest game' : 'Recent games' }));
-  for (const g of games) {
+  games.forEach((g, i) => {
     const scorer = (typeof topScorerOf === 'function' ? topScorerOf(g) : '—');
-    host.appendChild(el('button', {
+    const sumId = 'gsum-' + i;
+    const item = el('div', { cls: 'gitem' });
+    const btn = el('button', {
       cls: 'gcard' + (g.result === 'W' ? ' w' : g.result === 'L' ? ' l' : ''),
-      title: 'Open the season page', onclick: () => showTab('season') },
+      title: 'Show the match report', 'aria-expanded': 'false', 'aria-controls': sumId,
+      onclick: () => {
+        const open = item.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        // the report is written on first open, from the same record as everything else
+        if (open && !sum.childNodes.length) fillSummary(sum, g);
+      } },
       el('span', { cls: 'res', text: g.result || '—' }),
       el('span', { cls: 'meta' },
         el('span', { cls: 'opp', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent }),
         el('span', { cls: 'sub', text: [g.date || 'date not recorded', g.comp].filter(Boolean).join(' · ') })),
       el('span', { cls: 'score', text: g.us + '–' + g.them }),
-      el('span', { cls: 'top', text: scorer === '—' ? '' : 'Top: ' + scorer })));
-  }
+      el('span', { cls: 'top', text: scorer === '—' ? '' : 'Top: ' + scorer }),
+      el('span', { cls: 'chev', text: '▾', 'aria-hidden': 'true' }));
+    const sum = el('div', { cls: 'gsum', id: sumId });
+    item.appendChild(btn); item.appendChild(sum);
+    host.appendChild(item);
+  });
+}
+function fillSummary(host, g) {
+  const paras = typeof gameRecap === 'function' ? gameRecap(g) : [];
+  if (!paras.length) host.appendChild(el('p', { text: 'No match report could be written for this game.' }));
+  for (const p of paras) host.appendChild(el('p', { text: p }));
+  host.appendChild(el('button', { cls: 'gsum-go', text: 'FULL SEASON STATS →', onclick: () => showTab('season') }));
 }
 /* The match report sits under the intro: what happened last time out, written
    from the game's own numbers. */

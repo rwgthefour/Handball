@@ -590,8 +590,27 @@ const pidOf = num => _probePage.evaluate(n => {
   });
   ok('the finished game appears in the landing-page stream',
     stream.shown && stream.n === 1 && /vs Army/.test(stream.first) && /3–3/.test(stream.first) && /Top: Jack/.test(stream.first), JSON.stringify(stream));
+  // every game in the stream drops down its own report; the link inside still reaches the season page
+  ok('a stream card puts the date on its own line, under the opponent',
+    await page.evaluate(() => { const c = document.querySelector('#home-stream .gcard');
+      return c.querySelector('.sub').getBoundingClientRect().top >= c.querySelector('.opp').getBoundingClientRect().bottom - 1; }));
+  ok('a stream card starts closed', await page.$eval('#home-stream .gsum', e => getComputedStyle(e).display === 'none'));
   await page.click('#home-stream .gcard');
-  ok('a stream card opens the season page', await page.$eval('#tab-season', e => e.classList.contains('on')));
+  const gDrop = await page.evaluate(() => {
+    const s = document.querySelector('#home-stream .gsum'), b = document.querySelector('#home-stream .gcard');
+    const r = s.getBoundingClientRect();
+    return { h: Math.round(r.height), paras: [...s.querySelectorAll('p')].map(p => p.textContent),
+      expanded: b.getAttribute('aria-expanded'), recap: [...document.querySelectorAll('#home-recap p')].map(p => p.textContent) };
+  });
+  ok('tapping a stream card drops down that game\'s three-paragraph report',
+    gDrop.h > 80 && gDrop.paras.length === 3 && gDrop.expanded === 'true' && /Army 3–3/.test(gDrop.paras[0]), JSON.stringify(gDrop).slice(0, 200));
+  ok('…the same report the landing page writes for it', JSON.stringify(gDrop.paras) === JSON.stringify(gDrop.recap));
+  await page.click('#home-stream .gcard');
+  ok('tapping again folds it away', await page.$eval('#home-stream .gsum', e => e.getBoundingClientRect().height === 0));
+  await page.click('#home-stream .gcard');
+  const goLink = await page.$('#home-stream .gsum-go');        // assert, never crash, when the report is missing
+  if (goLink) await goLink.click();
+  ok('the link inside a report opens the season page', await page.$eval('#tab-season', e => e.classList.contains('on')));
   await goTab(page, 'home');
   await sleep(250);
   const recap = await page.evaluate(() => ({

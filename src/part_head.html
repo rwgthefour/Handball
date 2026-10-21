@@ -72,13 +72,27 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .home-stream h2{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mut);
   margin-bottom:10px;text-align:center}
 .gcard{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--hairline);
-  border-left:4px solid var(--silver);padding:12px 14px;margin-bottom:8px;cursor:pointer;text-align:left;
-  width:100%;font:inherit}
+  border-left:4px solid var(--silver);padding:12px 14px;cursor:pointer;text-align:left;
+  width:100%;font:inherit;color:inherit}
+/* every game in the stream drops down its own match report */
+.gitem{margin-bottom:8px}
+.gcard .chev{font-size:16px;color:var(--afa-blue);transition:transform .18s;flex:none;width:16px;text-align:center}
+.gitem.open .gcard .chev{transform:rotate(180deg)}
+.gitem.open .gcard{box-shadow:0 6px 18px rgba(8,25,80,.14)}
+.gsum{display:none;background:var(--card);border:1px solid var(--hairline);border-top:0;
+  border-left:4px solid var(--afa-blue);padding:14px 16px 12px}
+.gitem.open .gsum{display:block}
+.gsum p{margin:0 0 11px;color:var(--ink-2);font-size:14.5px;line-height:1.7}
+.gsum p:first-of-type{color:var(--ink)}
+.gsum .gsum-go{background:none;border:0;padding:2px 0;color:var(--afa-blue);font:inherit;font-size:12.5px;
+  font-weight:700;letter-spacing:.06em;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.gcard .chev{transition:none}}
 .gcard:hover{box-shadow:0 6px 18px rgba(8,25,80,.14)}
 .gcard.w{border-left-color:var(--good)} .gcard.l{border-left-color:var(--crit)}
 .gcard .res{font-weight:800;font-size:15px;width:22px;color:var(--ink-2)}
 .gcard.w .res{color:var(--good)} .gcard.l .res{color:var(--crit)}
 .gcard .meta{flex:1;min-width:0}
+.gcard .opp,.gcard .sub{display:block}   /* spans: without this the name and date run together */
 .gcard .opp{font-weight:700;color:var(--afa-blue-dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gcard .sub{font-size:11.5px;color:var(--ink-mut)}
 .gcard .score{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
