@@ -1,6 +1,6 @@
 {
  "v": 1,
- "ts": 1788050644858,
+ "ts": 1792617767955,
  "cards": [
   {
    "id": "c-cav",
@@ -120,6 +120,19 @@
    "career": ""
   },
   {
+   "id": "csaavedraq",
+   "sec": "player",
+   "name": "C2C Diego Saavedra",
+   "role": "",
+   "badge": false,
+   "photo": "",
+   "sq": "",
+   "pos": "Center Back",
+   "home": "Litchfield Park, AZ",
+   "major": "Civil Engineering",
+   "career": "Pilot"
+  },
+  {
    "id": "mspdiz19crgexq",
    "sec": "player",
    "name": "C2C Roman E. Trice",
@@ -179,10 +192,10 @@
    "badge": false,
    "photo": "",
    "sq": "",
-   "pos": "",
-   "home": "",
-   "major": "",
-   "career": ""
+   "pos": "Backcourt",
+   "home": "Minneapolis, MN",
+   "major": "Civil Engineering",
+   "career": "Civil Engineer"
   },
   {
    "id": "mspjct6nzh164t",
@@ -248,6 +261,19 @@
    "home": "Santa Claus, IN",
    "major": "Management",
    "career": "Pilot"
+  },
+  {
+   "id": "cbaeselr",
+   "sec": "player",
+   "name": "C4C Connor Baesel",
+   "role": "",
+   "badge": false,
+   "photo": "",
+   "sq": "",
+   "pos": "Left Wing",
+   "home": "Dallas, TX",
+   "major": "Undeclared (hoping for Foreign Area Studies)",
+   "career": ""
   }
  ]
 }
