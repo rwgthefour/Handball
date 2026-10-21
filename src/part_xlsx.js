@@ -233,7 +233,8 @@ const K_FIELDS = ['faced', 'sv', 'ga', 'f7', 'sv7', 'savew', 'en'];
    workbook and from a live archive; absent for a legacy sheet, which has none. */
 function flowFrom(rows) {          // rows: {half, clock, team, player, event, us, them}
   let pu = 0, pt = 0, lead = 0, leadChanges = 0, ties = 0, maxUs = 0, maxThem = 0;
-  let lastEqual = null, last = null, first = null, runTeam = null, run = 0, bestRun = null;
+  let lastEqual = null, lastEqualHalf = null, lastEqualI = -1, last = null, first = null;
+  let runTeam = null, run = 0, runFrom = '0–0', bestRun = null, gi = 0;
   const halfGoals = {};
   for (const r of rows) {
     if (r.us == null || r.them == null) continue;
@@ -245,10 +246,12 @@ function flowFrom(rows) {          // rows: {half, clock, team, player, event, u
       halfGoals[k] = halfGoals[k] || { H1: 0, H2: 0, other: 0 };
       halfGoals[k][r.half === 'H1' ? 'H1' : r.half === 'H2' ? 'H2' : 'other']++;
     }
-    if (runTeam === mine) run++; else { runTeam = mine; run = 1; }
-    if (run >= 3 && (!bestRun || run > bestRun.n)) bestRun = { n: run, mine, half: r.half, clock: r.clock };
+    gi++;
+    if (runTeam === mine) run++; else { runTeam = mine; run = 1; runFrom = pu + '–' + pt; }
+    if (run >= 3 && (!bestRun || run > bestRun.n))
+      bestRun = { n: run, mine, half: r.half, clock: r.clock, from: runFrom, to: r.us + '–' + r.them, i: gi };
     const sign = r.us > r.them ? 1 : r.us < r.them ? -1 : 0;
-    if (sign === 0) { ties++; lastEqual = r.us + '–' + r.them; }
+    if (sign === 0) { ties++; lastEqual = r.us + '–' + r.them; lastEqualHalf = r.half; lastEqualI = gi; }
     else { if (lead !== 0 && sign !== lead) leadChanges++; lead = sign; }
     maxUs = Math.max(maxUs, r.us - r.them); maxThem = Math.max(maxThem, r.them - r.us);
     last = { half: r.half, clock: r.clock, mine, player: r.player || '', score: r.us + '–' + r.them };
@@ -256,7 +259,7 @@ function flowFrom(rows) {          // rows: {half, clock, team, player, event, u
     pu = r.us; pt = r.them;
   }
   if (!last) return null;
-  return { leadChanges, ties, maxUs, maxThem, lastEqual, last, first, bestRun, halfGoals };
+  return { leadChanges, ties, maxUs, maxThem, lastEqual, lastEqualHalf, lastEqualI, last, first, bestRun, halfGoals };
 }
 function flowFromSheet(wb) {
   const rows = rowsOf(wb.Sheets['Play-by-Play']);

@@ -2770,7 +2770,8 @@ const K_FIELDS = ['faced', 'sv', 'ga', 'f7', 'sv7', 'savew', 'en'];
    workbook and from a live archive; absent for a legacy sheet, which has none. */
 function flowFrom(rows) {          // rows: {half, clock, team, player, event, us, them}
   let pu = 0, pt = 0, lead = 0, leadChanges = 0, ties = 0, maxUs = 0, maxThem = 0;
-  let lastEqual = null, last = null, first = null, runTeam = null, run = 0, bestRun = null;
+  let lastEqual = null, lastEqualHalf = null, lastEqualI = -1, last = null, first = null;
+  let runTeam = null, run = 0, runFrom = '0–0', bestRun = null, gi = 0;
   const halfGoals = {};
   for (const r of rows) {
     if (r.us == null || r.them == null) continue;
@@ -2782,10 +2783,12 @@ function flowFrom(rows) {          // rows: {half, clock, team, player, event, u
       halfGoals[k] = halfGoals[k] || { H1: 0, H2: 0, other: 0 };
       halfGoals[k][r.half === 'H1' ? 'H1' : r.half === 'H2' ? 'H2' : 'other']++;
     }
-    if (runTeam === mine) run++; else { runTeam = mine; run = 1; }
-    if (run >= 3 && (!bestRun || run > bestRun.n)) bestRun = { n: run, mine, half: r.half, clock: r.clock };
+    gi++;
+    if (runTeam === mine) run++; else { runTeam = mine; run = 1; runFrom = pu + '–' + pt; }
+    if (run >= 3 && (!bestRun || run > bestRun.n))
+      bestRun = { n: run, mine, half: r.half, clock: r.clock, from: runFrom, to: r.us + '–' + r.them, i: gi };
     const sign = r.us > r.them ? 1 : r.us < r.them ? -1 : 0;
-    if (sign === 0) { ties++; lastEqual = r.us + '–' + r.them; }
+    if (sign === 0) { ties++; lastEqual = r.us + '–' + r.them; lastEqualHalf = r.half; lastEqualI = gi; }
     else { if (lead !== 0 && sign !== lead) leadChanges++; lead = sign; }
     maxUs = Math.max(maxUs, r.us - r.them); maxThem = Math.max(maxThem, r.them - r.us);
     last = { half: r.half, clock: r.clock, mine, player: r.player || '', score: r.us + '–' + r.them };
@@ -2793,7 +2796,7 @@ function flowFrom(rows) {          // rows: {half, clock, team, player, event, u
     pu = r.us; pt = r.them;
   }
   if (!last) return null;
-  return { leadChanges, ties, maxUs, maxThem, lastEqual, last, first, bestRun, halfGoals };
+  return { leadChanges, ties, maxUs, maxThem, lastEqual, lastEqualHalf, lastEqualI, last, first, bestRun, halfGoals };
 }
 function flowFromSheet(wb) {
   const rows = rowsOf(wb.Sheets['Play-by-Play']);
@@ -3475,27 +3478,49 @@ function gameRecap(g) {
   const ht = /^\d+-\d+$/.test(g.ht || '') ? g.ht.split('-').map(Number) : null;
 
   /* 1 — the result, and how the game turned */
+  const HALFNAME = { H1: 'in the first half', H2: 'in the second half', OT1: 'in overtime', OT2: 'in overtime', SO: 'in the shoot-out' };
+  const inHalf = h => HALFNAME[h] ? ' ' + HALFNAME[h] : '';
+  const winner = won ? 'Air Force' : g.opponent;
+  const htLine = ht ? 'Air Force ' + (ht[0] > ht[1] ? 'took a ' + (ht[0] - ht[1]) + '-goal lead into the break at '
+    : ht[0] < ht[1] ? 'went in ' + (ht[1] - ht[0]) + ' down at the break at ' : 'was level at the break at ')
+    + ht[0] + '–' + ht[1] : '';
   const a = ['Air Force ' + verb + ' ' + g.opponent + ' ' + g.us + '–' + g.them + where
     + (comp ? ' ' + comp : '') + (when ? ' on ' + when : '') + '.'];
-  if (margin === 1) a.push('One goal separated the sides at the final whistle.');
-  else if (margin >= 8) a.push('The margin was ' + margin + ' by the end, and it was not in doubt for long.');
-  else a.push('It finished ' + plural(margin, 'goal') + ' apart.');
-  if (ht) a.push('Air Force ' + (ht[0] > ht[1] ? 'took a ' + (ht[0] - ht[1]) + '-goal lead into the break at '
-    : ht[0] < ht[1] ? 'went in ' + (ht[1] - ht[0]) + ' down at the break at ' : 'was level at the break at ')
-    + ht[0] + '–' + ht[1] + '.');
-  if (F) {
-    if (F.leadChanges > 2) a.push('The lead changed hands ' + plural(F.leadChanges, 'time')
-      + (F.ties ? ' and the score was level on ' + plural(F.ties, 'occasion') : '') + '.');
-    else if (F.ties > 4) a.push('Neither side could pull clear — the scores were level ' + plural(F.ties, 'time') + '.');
-    const biggest = Math.max(F.maxUs, F.maxThem);
-    if (biggest >= 3) a.push(F.maxUs >= F.maxThem
-      ? 'Air Force led by as many as ' + plural(F.maxUs, 'goal') + '.'
-      : g.opponent + ' led by as many as ' + plural(F.maxThem, 'goal') + '.');
-    else if (biggest <= 2) a.push('Neither team led by more than ' + plural(biggest, 'goal') + ' all afternoon.');
-    if (F.lastEqual && margin <= 3) a.push('The last time the game was level was ' + F.lastEqual + '.');
-    const HALFNAME = { H1: 'in the first half', H2: 'in the second half', OT1: 'in overtime', OT2: 'in overtime', SO: 'in the shoot-out' };
-    if (F.last) a.push('The last goal of the game ' + (F.last.mine ? 'was Air Force\'s' + (F.last.player ? ', through ' + F.last.player : '') : 'went to ' + g.opponent)
-      + (HALFNAME[F.last.half] ? ' ' + HALFNAME[F.last.half] : '') + '.');
+  /* A one-sided score can hide a close start, so a wide margin never claims
+     the game was never in doubt: it says when it was last level and names the
+     run that broke it open — or that the winner led throughout, when it did. */
+  if (margin >= 6 && F && g.result !== 'T') {
+    const loserLed = won ? F.maxThem > 0 : F.maxUs > 0;
+    if (F.lastEqual) {
+      a.push((F.leadChanges > 2 || F.ties > 4)
+        ? 'It was a contest early: the lead changed hands ' + plural(F.leadChanges, 'time') + ' and the scores were level on '
+          + plural(F.ties, 'occasion') + ', the last of them at ' + F.lastEqual + inHalf(F.lastEqualHalf) + '.'
+        : 'The scores were last level at ' + F.lastEqual + inHalf(F.lastEqualHalf) + '.');
+      const R = F.bestRun;
+      a.push(R && R.n >= 4 && R.mine === won && R.i > F.lastEqualI
+        ? 'From there ' + winner + ' pulled away, with a ' + R.n + '–0 run' + inHalf(R.half) + ' that took the score from ' + R.from + ' to ' + R.to + '.'
+        : 'From there ' + winner + ' pulled away.');
+    } else if (!loserLed) a.push(winner + ' led from the first goal to the last.');
+    if (htLine) a.push(htLine + ', and the final margin was ' + plural(margin, 'goal') + '.');
+    else a.push('The final margin was ' + plural(margin, 'goal') + '.');
+  } else {
+    if (margin === 1) a.push('One goal separated the sides at the final whistle.');
+    else if (margin >= 6) a.push('The final margin was ' + plural(margin, 'goal') + '.');
+    else if (margin > 1) a.push('It finished ' + plural(margin, 'goal') + ' apart.');
+    if (htLine) a.push(htLine + '.');
+    if (F) {
+      if (F.leadChanges > 2) a.push('The lead changed hands ' + plural(F.leadChanges, 'time')
+        + (F.ties ? ' and the score was level on ' + plural(F.ties, 'occasion') : '') + '.');
+      else if (F.ties > 4) a.push('Neither side could pull clear — the scores were level ' + plural(F.ties, 'time') + '.');
+      const biggest = Math.max(F.maxUs, F.maxThem);
+      if (biggest >= 3) a.push(F.maxUs >= F.maxThem
+        ? 'Air Force led by as many as ' + plural(F.maxUs, 'goal') + '.'
+        : g.opponent + ' led by as many as ' + plural(F.maxThem, 'goal') + '.');
+      else if (biggest <= 2) a.push('Neither team led by more than ' + plural(biggest, 'goal') + ' all afternoon.');
+      if (F.lastEqual && margin <= 3) a.push('The last time the game was level was ' + F.lastEqual + '.');
+      if (F.last) a.push('The last goal of the game ' + (F.last.mine ? 'was Air Force\'s' + (F.last.player ? ', through ' + F.last.player : '') : 'went to ' + g.opponent)
+        + inHalf(F.last.half) + '.');
+    }
   }
 
   /* 2 — the attack */
@@ -3535,7 +3560,7 @@ function gameRecap(g) {
   const def = [];
   if (stls) def.push(plural(stls, 'steal'));
   if (blks) def.push(plural(blks, 'block'));
-  if (def.length) c.push('In front of him the defence produced ' + joinList(def) + '.');
+  if (def.length) c.push('The defence produced ' + joinList(def) + '.');   // 'him' was ambiguous once two keepers were named
   if (tos) c.push('Air Force turned the ball over ' + plural(tos, 'time')
     + (tos >= 8 ? ', the one number the staff will want back' : '') + '.');
   if (p2) c.push('The Falcons served ' + plural(p2, 'two-minute suspension') + '.');

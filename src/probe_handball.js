@@ -609,6 +609,21 @@ const pidOf = num => _probePage.evaluate(n => {
   });
   ok('the report is a styled card in the same column as the stream',
     recapBox.w <= 724 && recapBox.carded && recapBox.alignedWithStream, JSON.stringify(recapBox));
+  /* A lopsided score can hide a close start: level 4-4, then a 6-0 run, a 16-goal
+     loss. The report must say when it was last level and name the run — never
+     claim the game was never in doubt (the 31-47 Denver Wolves game was 9-9). */
+  const blow = await page.evaluate(() => {
+    const seq = 'TUTUTUTU' + 'TTTTTT' + 'UTTUTTUTTTUTTTT';       // Air Force equalises last, at 4-4       // U = Air Force goal, T = opponent goal
+    let u = 0, t = 0;
+    const rows = [...seq].map((c, i) => { c === 'U' ? u++ : t++;
+      return { half: i < 16 ? 'H1' : 'H2', clock: '', player: c === 'U' ? 'C1C Test Shooter' : '', us: u, them: t }; });
+    const g = { opponent: 'Blowout U', ha: 'Away', comp: 'Exhibition', date: '2026-10-01', result: 'L', us: u, them: t,
+      ht: '5-11', flow: flowFrom(rows), players: [], keepers: [] };
+    return { score: u + '-' + t, p1: gameRecap(g)[0] };
+  });
+  ok('a blowout report says when it was last level and names the run that broke it open',
+    /at 4–4 in the first half/.test(blow.p1) && /pulled away, with a 6–0 run in the first half that took the score from 4–4 to 4–10/.test(blow.p1)
+      && !/not in doubt/.test(blow.p1) && /final margin was/.test(blow.p1), blow.score + ' :: ' + blow.p1);
   ok('the report is written from the game that was just played',
     /Air Force drew with Army 3–3/.test(recap.paras[0]) && /Jack/.test(recap.paras[1]), recap.paras[0]);
 
