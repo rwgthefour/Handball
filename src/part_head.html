@@ -67,6 +67,19 @@ header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-tra
 .home-actions .act:hover{box-shadow:0 8px 22px rgba(8,25,80,.16);border-top-color:#c9a227}
 .act .t{font-weight:800;letter-spacing:.1em;color:var(--afa-blue);font-size:15px}
 .act .d{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
+/* Giving Tuesday: the competition counts unique donors, so the ask is to share */
+.home-give{max-width:720px;margin:18px auto 0;padding:0 16px}
+.home-give .gv{background:var(--afa-blue-dk);color:#fff;border-left:4px solid #c9a227;padding:16px 18px}
+.home-give .gv-k{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#c9a227;font-weight:800}
+.home-give .gv-h{font-size:19px;font-weight:800;letter-spacing:.03em;margin-top:5px}
+.home-give .gv-d{font-size:13.5px;line-height:1.55;margin-top:6px;color:#dbe4f7}
+.home-give .gv-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.home-give .gv-row a,.home-give .gv-row button{font:inherit;font-weight:800;letter-spacing:.06em;font-size:13px;
+  padding:10px 16px;cursor:pointer;text-decoration:none;border:2px solid #c9a227}
+.home-give .gv-go{background:#c9a227;color:#00276b}
+.home-give .gv-go:hover{background:#ddb73a}
+.home-give .gv-share{background:transparent;color:#fff}
+.home-give .gv-share:hover{background:rgba(255,255,255,.1)}
 /* the stream: the most recent games, newest first */
 .home-stream{max-width:720px;margin:22px auto 4px;padding:0 16px;display:none}
 .home-stream h2{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mut);
@@ -474,6 +487,20 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
     <img id="home-crest" alt="U.S. Air Force Academy crest">
     <h1>AIR FORCE TEAM HANDBALL</h1>
     <div class="sub">United States Air Force Academy</div>
+  </div>
+
+  <div class="home-give" id="home-give">
+    <div class="gv">
+      <div class="gv-k">Giving Tuesday</div>
+      <div class="gv-h">Help Air Force team handball win on donors</div>
+      <div class="gv-d">The Giving Tuesday competition is decided by the number of unique donors, not dollars
+        raised — every gift counts, whatever its size, and counts the moment it is made. Alumni, parents,
+        family and friends: give through our link, then pass it on.</div>
+      <div class="gv-row">
+        <a class="gv-go" id="give-link" href="https://give.usafa.org/schools/UnitedStatesAirForceAcademy/givingtuesday/pages/cadet-clubs/handball" target="_blank" rel="noopener">GIVE THROUGH OUR LINK ▸</a>
+        <button class="gv-share" id="give-share" type="button">SHARE THE LINK</button>
+      </div>
+    </div>
   </div>
 
   <div class="home-stream" id="home-stream"></div>

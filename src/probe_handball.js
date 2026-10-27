@@ -613,6 +613,27 @@ const pidOf = num => _probePage.evaluate(n => {
   ok('the link inside a report opens the season page', await page.$eval('#tab-season', e => e.classList.contains('on')));
   await goTab(page, 'home');
   await sleep(250);
+  /* Giving Tuesday (27 Oct): the competition counts unique donors, so the landing page carries the
+     club's own link and a share button that hands that same link on. */
+  const GIVE_URL = 'https://give.usafa.org/schools/UnitedStatesAirForceAcademy/givingtuesday/pages/cadet-clubs/handball';
+  const give = await page.evaluate(() => {
+    const a = document.querySelector('#home-give a#give-link'), box = document.querySelector('#home-give');
+    const st = document.querySelector('#home-stream');
+    if (!a || !box) return null;
+    const r = box.getBoundingClientRect();
+    return { href: a.getAttribute('href'), target: a.target, rel: a.rel, h: Math.round(r.height), w: Math.round(r.width),
+      top: r.top, streamTop: st.getBoundingClientRect().top, text: box.textContent };
+  });
+  ok('the landing page links the Giving Tuesday page, in a new tab', !!give && give.href === GIVE_URL &&
+    give.target === '_blank' && /noopener/.test(give.rel), JSON.stringify(give).slice(0, 220));
+  ok('…as a visible card above the recent games, saying donors count, not dollars', !!give && give.h > 80 && give.w > 300 &&
+    give.top < give.streamTop && /unique donors, not dollars/.test(give.text), JSON.stringify(give && { h: give.h, w: give.w, top: give.top, st: give.streamTop }));
+  await page.evaluate(() => { window.__shared = null; navigator.share = async d => { window.__shared = d; }; });
+  const giveShare = await page.$('#give-share');                 // assert, never crash, when the button is missing
+  if (giveShare) await giveShare.click();
+  await sleep(100);
+  const shared = await page.evaluate(() => window.__shared);
+  ok('SHARE THE LINK hands on exactly the Giving Tuesday link', !!shared && shared.url === GIVE_URL, JSON.stringify(shared));
   const recap = await page.evaluate(() => ({
     shown: getComputedStyle(document.getElementById('home-recap')).display !== 'none',
     paras: [...document.querySelectorAll('#home-recap p')].map(x => x.textContent),
@@ -1036,6 +1057,9 @@ const pidOf = num => _probePage.evaluate(n => {
   await p6.evaluate(() => localStorage.clear());
   await p6.reload();
   ok('phone: welcome page has no sideways scroll', await noOverflow(p6, PHONE_W));
+  ok('phone: the Giving Tuesday buttons fit inside the screen', await p6.evaluate(w =>
+    ['#give-link', '#give-share'].every(q => { const e = document.querySelector(q); if (!e) return false;
+      const r = e.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= w; }), PHONE_W));
   await p6.screenshot({ path: path.join(SCRATCH, 'shot_mobile_home.png'), fullPage: true });
   await unlockAdmin(p6);
   await openRosterMgmt(p6);

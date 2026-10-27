@@ -507,6 +507,13 @@ function renderHome() {
   } else r.style.display = 'none';
 }
 $('#home-resume').addEventListener('click', () => showTab(game && !game.done ? 'game' : 'season'));
+$('#give-share').addEventListener('click', async () => {
+  const url = $('#give-link').href;
+  const msg = 'Support Air Force team handball on Giving Tuesday: the competition counts unique donors, so every gift helps.';
+  if (navigator.share) { try { await navigator.share({ title: 'Air Force Team Handball — Giving Tuesday', text: msg, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(url); toast('Giving Tuesday link copied'); }
+  catch (e) { window.prompt('Copy the Giving Tuesday link:', url); }
+});
 
 /* collapsible game setup + roster manager */
 $('#setup-toggle').addEventListener('click', () => {
