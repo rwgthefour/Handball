@@ -647,8 +647,9 @@ const pidOf = num => _probePage.evaluate(n => {
       carded: !!c && getComputedStyle(c).backgroundColor !== 'rgba(0, 0, 0, 0)',
       alignedWithStream: Math.abs(r.getBoundingClientRect().left - s.getBoundingClientRect().left) < 2 };
   });
+  // the home column is 1100px wide since the editorial redesign (it was a 720px centred column)
   ok('the report is a styled card in the same column as the stream',
-    recapBox.w <= 724 && recapBox.carded && recapBox.alignedWithStream, JSON.stringify(recapBox));
+    recapBox.w <= 1100 && recapBox.carded && recapBox.alignedWithStream, JSON.stringify(recapBox));
   /* A lopsided score can hide a close start: level 4-4, then a 6-0 run, a 16-goal
      loss. The report must say when it was last level and name the run — never
      claim the game was never in doubt (the 31-47 Denver Wolves game was 9-9). */

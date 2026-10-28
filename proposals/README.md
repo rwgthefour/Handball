@@ -16,9 +16,11 @@ keeper numbers and the shot-map dots come from the two workbooks in `games/`.
 The "Next up" fixture in C is a placeholder — the site has no schedule data.
 
 These pages are proposals, not part of the build: `src/build.py` does not
-touch them and they are not linked from `index.html`. Once a direction is
-chosen, its markup and CSS move into `src/part_head.html` and the generated
-sections (stream, recap, cards, season tables) are restyled to match.
+touch them and they are not linked from `index.html`. Direction B is the one
+the site now uses: its type, colours and layout live in `src/part_head.html`,
+and the generated sections (ticker, stream, report, numbers, cards, season
+tables) are styled to match. The home page keeps the Giving Tuesday ask and
+the recent games at the top, under a compact masthead.
 
 Each page carries a small fixed switcher in the bottom-right corner to jump
 between A, B, C and this index.

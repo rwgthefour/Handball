@@ -4,14 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>USAFA Team Handball — Stat Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Instrument+Serif:ital@0;1&display=swap">
 <style>
-/* ============ USAFA THEME ============ */
+/* ============ USAFA THEME — editorial ============
+   White ground, ink type, Air Force blue as the one accent. Archivo carries
+   the page (a wide, heavy cut for the wordmark), Instrument Serif italic is
+   the counterpoint. Fonts load from Google Fonts with swap; offline the
+   system stack stands in. */
 :root{
   --afa-blue:#003594; --afa-blue-dk:#00276b; --afa-blue-lt:#1a4fb3;
-  --silver:#8A8D8F; --steel:#d7dade;
-  --page:#f2f4f8; --card:#ffffff;
-  --ink:#0b0b0b; --ink-2:#52514e; --ink-mut:#898781;
-  --line:#e1e0d9; --hairline:rgba(11,11,11,.10);
+  --silver:#8A8D8F; --steel:#cfcfca;
+  --page:#ffffff; --card:#ffffff; --paper:#f3f3f0;
+  --ink:#101010; --ink-2:#3f3f3c; --ink-mut:#5f5f5f;
+  --line:#d9d9d4; --hairline:rgba(16,16,16,.14);
+  --display:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
   /* chart tokens (validated reference palette, light mode) */
   --surface-1:#fcfcfb;
   --series-1:#2a78d6; --series-2:#eb6834;
@@ -22,130 +31,178 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{background:var(--page);color:var(--ink);
-  font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;}
+  font:15px/1.5 var(--display);-webkit-font-smoothing:antialiased}
 button{font:inherit;cursor:pointer}
 input,select,textarea{font:inherit}
-h1,h2,h3{margin:0;font-weight:650}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.02em}
+/* the editorial label: small caps-style eyebrow used above every section */
+.label{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut)}
+.pill{display:inline-flex;align-items:center;gap:10px;min-height:46px;padding:0 22px;border-radius:999px;
+  background:var(--ink);color:#fff;border:1px solid var(--ink);font-weight:600;font-size:14px;
+  letter-spacing:.01em;text-decoration:none;cursor:pointer}
+.pill:hover{background:var(--afa-blue);border-color:var(--afa-blue);color:#fff}
+.pill.ghost{background:transparent;color:var(--ink)}
+.pill.ghost:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 
 /* ============ HEADER ============ */
-header.app{background:linear-gradient(135deg,var(--afa-blue-dk),var(--afa-blue));
-  color:#fff;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-header.app img.crest{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
-header.app .ttl .l1{font-size:18px;font-weight:700;letter-spacing:.06em}
-header.app .ttl .l2{font-size:11.5px;letter-spacing:.22em;color:#b9c6e8;text-transform:uppercase}
-/* hamburger menu */
-.menu-wrap{margin-left:auto;position:relative}
-#menu-btn{width:48px;height:42px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.28);
-  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer}
-#menu-btn span{display:block;width:22px;height:2.5px;background:#fff;border-radius:1px}
-#menu-btn:hover{background:rgba(255,255,255,.22)}
-.menu{position:absolute;right:0;top:48px;background:#fff;border:1px solid var(--hairline);
-  box-shadow:0 10px 28px rgba(6,14,40,.35);min-width:220px;display:none;z-index:300}
+header.app{background:#fff;border-bottom:1px solid var(--ink);padding:0 24px;height:72px;
+  display:flex;align-items:center;gap:16px;position:relative;z-index:50}
+header.app img.crest{width:34px;height:34px;object-fit:contain}
+header.app .ttl .l1{font-size:15px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+header.app .ttl .l2{font-size:10.5px;letter-spacing:.14em;color:var(--ink-mut);text-transform:uppercase;font-weight:600;margin-top:2px}
+.topnav{display:flex;gap:28px;margin-left:auto}
+.topnav button{background:none;border:0;padding:6px 0;font-weight:500;font-size:15px;color:var(--ink);position:relative}
+.topnav button::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:currentColor;
+  transform:scaleX(0);transform-origin:left;transition:transform .2s}
+.topnav button:hover::after,.topnav button.on::after{transform:scaleX(1)}
+.topnav button.on{color:var(--afa-blue)}
+.give-pill{min-height:40px;padding:0 18px}
+/* hamburger menu: the full map, including the admin door */
+.menu-wrap{position:relative}
+#menu-btn{width:44px;height:40px;background:#fff;border:1px solid var(--ink);border-radius:999px;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;cursor:pointer}
+#menu-btn span{display:block;width:18px;height:2px;background:var(--ink);border-radius:1px}
+#menu-btn:hover{background:var(--paper)}
+.menu{position:absolute;right:0;top:50px;background:#fff;border:1px solid var(--ink);border-radius:8px;
+  box-shadow:0 14px 34px rgba(16,16,16,.18);min-width:230px;display:none;z-index:300;overflow:hidden}
 .menu.open{display:block}
-.menu button,.menu a{display:block;width:100%;text-align:left;padding:14px 20px;border:none;background:#fff;
-  font-weight:700;letter-spacing:.1em;font-size:13px;color:var(--ink-2);border-left:3px solid transparent;
+.menu button,.menu a{display:block;width:100%;text-align:left;padding:13px 18px;border:none;background:#fff;
+  font-weight:700;letter-spacing:.1em;font-size:12.5px;color:var(--ink);border-bottom:1px solid var(--line);
   text-decoration:none;box-sizing:border-box}
-.menu button:hover,.menu a:hover{background:#eef3fc;color:var(--afa-blue)}
-.menu button.on{border-left-color:var(--afa-blue);color:var(--afa-blue);background:#f4f7fd}
-.menu a#menu-donate{color:#8a6502}
+.menu button:last-child{border-bottom:0}
+.menu button:hover,.menu a:hover{background:var(--paper);color:var(--afa-blue)}
+.menu button.on{color:var(--afa-blue);background:var(--paper)}
+.menu a#menu-donate{color:var(--afa-blue)}
 .cui{background:#0d1220;color:#8fa3cc;text-align:center;font-size:10.5px;
   letter-spacing:.18em;padding:3px 8px;text-transform:uppercase}
 
-/* welcome / home */
-.home-hero{text-align:center;padding:52px 16px 24px}
-.home-hero img{width:150px;height:150px;object-fit:contain;filter:drop-shadow(0 5px 16px rgba(0,25,80,.35))}
-.home-hero h1{font-size:clamp(26px,4.5vw,38px);letter-spacing:.08em;color:var(--afa-blue-dk);margin-top:16px}
-.home-hero .sub{letter-spacing:.3em;color:var(--silver);text-transform:uppercase;font-size:12.5px;margin-top:7px}
-.home-hero .wel{max-width:640px;margin:18px auto 0;color:var(--ink-2);font-size:15px;line-height:1.6}
-#home-resume{display:none;width:100%;background:#0d2a66;color:#fff;padding:15px 20px;text-align:left;
-  border:none;border-left:4px solid #c9a227;cursor:pointer;font:inherit;font-weight:700;letter-spacing:.04em;margin-bottom:6px}
-#home-resume:hover{background:#123a8c}
-.home-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;
-  max-width:880px;margin:22px auto 8px;padding:0 16px}
-.home-actions .act{background:var(--card);border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
-  padding:22px 18px;text-align:left;cursor:pointer;font:inherit}
-.home-actions .act:hover{box-shadow:0 8px 22px rgba(8,25,80,.16);border-top-color:#c9a227}
-.act .t{font-weight:800;letter-spacing:.1em;color:var(--afa-blue);font-size:15px}
-.act .d{color:var(--ink-2);font-size:12.5px;margin-top:7px;line-height:1.55}
+/* ============ HOME ============
+   Order is deliberate: a compact masthead, then the things a visitor came for —
+   the Giving Tuesday ask and the recent games — before the photo and the doors. */
+.home-wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+.home-mast{padding:36px 0 6px}
+.home-mast .kicker{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.home-mast .kicker img{width:40px;height:40px;object-fit:contain}
+.home-mast .kicker .label span{margin-right:14px}
+.home-mast h1{margin-top:16px;line-height:.88;letter-spacing:-.045em}
+.home-mast h1 .w1{display:block;font-weight:900;font-stretch:118%;font-size:clamp(46px,9.4vw,128px)}
+.home-mast h1 .w2{display:block;font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:clamp(40px,7.6vw,104px);letter-spacing:-.02em;color:var(--afa-blue);margin-top:4px}
+/* the ticker: season highlights that scroll past — results, the record, the
+   leaders — written from the same games as the stream, never static copy */
+.home-ticker{display:none;overflow:hidden;white-space:nowrap;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin-top:26px}
+.home-ticker .track{display:inline-block;padding:13px 0;animation:tk 48s linear infinite;
+  font-family:var(--serif);font-style:italic;font-size:26px;letter-spacing:-.01em;color:var(--ink)}
+.home-ticker:hover .track{animation-play-state:paused}
+.home-ticker .track span{margin-right:36px}
+.home-ticker .track .sep{color:var(--afa-blue)}
+@keyframes tk{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.home-ticker .track{animation:none}}
+#home-resume{display:none;width:100%;background:var(--ink);color:#fff;padding:14px 20px;text-align:left;
+  border:0;border-radius:6px;cursor:pointer;font:inherit;font-weight:600;letter-spacing:.02em;margin-top:22px}
+#home-resume:hover{background:var(--afa-blue)}
 /* Giving Tuesday: the competition counts unique donors, so the ask is to share */
-.home-give{max-width:720px;margin:18px auto 0;padding:0 16px}
-.home-give .gv{background:var(--afa-blue-dk);color:#fff;border-left:4px solid #c9a227;padding:16px 18px}
-.home-give .gv-k{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#c9a227;font-weight:800}
-.home-give .gv-h{font-size:19px;font-weight:800;letter-spacing:.03em;margin-top:5px}
-.home-give .gv-d{font-size:13.5px;line-height:1.55;margin-top:6px;color:#dbe4f7}
-.home-give .gv-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
-.home-give .gv-row a,.home-give .gv-row button{font:inherit;font-weight:800;letter-spacing:.06em;font-size:13px;
-  padding:10px 16px;cursor:pointer;text-decoration:none;border:2px solid #c9a227}
-.home-give .gv-go{background:#c9a227;color:#00276b}
-.home-give .gv-go:hover{background:#ddb73a}
+.home-give{margin-top:26px}
+.home-give .gv{background:var(--afa-blue);color:#fff;border-radius:6px;padding:34px 36px 32px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:22px 48px;align-items:end}
+.home-give .gv-k{grid-column:1/-1;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#bfd0ff;font-weight:600}
+.home-give .gv-h{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.02em;
+  font-size:clamp(36px,4.8vw,62px);line-height:.98}
+.home-give .gv-d{font-size:16px;line-height:1.6;color:#dfe7ff;max-width:520px}
+.home-give .gv-row{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}
+.home-give .gv-row a,.home-give .gv-row button{display:inline-flex;align-items:center;gap:8px;min-height:46px;
+  padding:0 22px;border-radius:999px;font:inherit;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;
+  border:1px solid #fff}
+.home-give .gv-go{background:#fff;color:var(--afa-blue)}
+.home-give .gv-go:hover{background:#dfe7ff;color:var(--afa-blue-dk)}
 .home-give .gv-share{background:transparent;color:#fff}
-.home-give .gv-share:hover{background:rgba(255,255,255,.1)}
-/* the stream: the most recent games, newest first */
-.home-stream{max-width:720px;margin:22px auto 4px;padding:0 16px;display:none}
-.home-stream h2{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mut);
-  margin-bottom:10px;text-align:center}
-.gcard{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--hairline);
-  border-left:4px solid var(--silver);padding:12px 14px;cursor:pointer;text-align:left;
-  width:100%;font:inherit;color:inherit}
-/* every game in the stream drops down its own match report */
-.gitem{margin-bottom:8px}
-.gcard .chev{font-size:16px;color:var(--afa-blue);transition:transform .18s;flex:none;width:16px;text-align:center}
+.home-give .gv-share:hover{background:#fff;color:var(--afa-blue)}
+/* the stream: the most recent games, newest first, each with its own report */
+.home-stream{margin-top:44px;display:none}
+.home-stream h2,.home-numbers h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut);
+  font-weight:600;margin:0;padding-bottom:14px;border-bottom:1px solid var(--ink)}
+.gitem{border-bottom:1px solid var(--line)}
+.gcard{display:grid;grid-template-columns:40px minmax(0,1fr) auto minmax(0,220px) 22px;gap:18px;align-items:center;
+  background:transparent;border:0;padding:20px 0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.gcard:hover .opp{color:var(--afa-blue)}
+.gcard .chev{font-size:16px;color:var(--ink);transition:transform .18s;text-align:center}
 .gitem.open .gcard .chev{transform:rotate(180deg)}
-.gitem.open .gcard{box-shadow:0 6px 18px rgba(8,25,80,.14)}
-.gsum{display:none;background:var(--card);border:1px solid var(--hairline);border-top:0;
-  border-left:4px solid var(--afa-blue);padding:14px 16px 12px}
+.gsum{display:none;background:var(--paper);border-radius:6px;padding:26px 28px 22px;margin:0 0 20px}
 .gitem.open .gsum{display:block}
-.gsum p{margin:0 0 11px;color:var(--ink-2);font-size:14.5px;line-height:1.7}
-.gsum p:first-of-type{color:var(--ink)}
-.gsum .gsum-go{background:none;border:0;padding:2px 0;color:var(--afa-blue);font:inherit;font-size:12.5px;
-  font-weight:700;letter-spacing:.06em;cursor:pointer}
+.gsum p{margin:0 0 12px;color:var(--ink-2);font-size:16px;line-height:1.7;max-width:760px}
+.gsum p:first-of-type{color:var(--ink);font-size:18px;line-height:1.55}
+.gsum .gsum-go{background:none;border:0;border-bottom:1px solid currentColor;padding:2px 0;color:var(--afa-blue);
+  font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.gcard .chev{transition:none}}
-.gcard:hover{box-shadow:0 6px 18px rgba(8,25,80,.14)}
-.gcard.w{border-left-color:var(--good)} .gcard.l{border-left-color:var(--crit)}
-.gcard .res{font-weight:800;font-size:15px;width:22px;color:var(--ink-2)}
-.gcard.w .res{color:var(--good)} .gcard.l .res{color:var(--crit)}
-.gcard .meta{flex:1;min-width:0}
+.gcard .res{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--ink);display:inline-flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--ink)}
+.gcard.w .res{background:#0b7a0b;border-color:#0b7a0b;color:#fff}
+.gcard.l .res{background:#b42b2b;border-color:#b42b2b;color:#fff}
+.gcard .meta{min-width:0}
 .gcard .opp,.gcard .sub{display:block}   /* spans: without this the name and date run together */
-.gcard .opp{font-weight:700;color:var(--afa-blue-dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gcard .sub{font-size:11.5px;color:var(--ink-mut)}
-.gcard .score{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
-.gcard .top{font-size:11.5px;color:var(--ink-2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* the match report sits where the intro used to, in the same centred column */
-.home-recap{max-width:720px;margin:18px auto 0;padding:0 16px;display:none}
-.home-recap .rc{background:var(--card);border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
-  padding:22px 24px;box-shadow:0 4px 16px rgba(8,25,80,.10)}
-.home-recap h2{font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--afa-blue);margin-bottom:5px}
-.home-recap .rsub{font-size:11.5px;letter-spacing:.06em;color:var(--ink-mut);margin-bottom:14px;
-  padding-bottom:12px;border-bottom:1px solid var(--line)}
-.home-recap p{margin:0 0 13px;color:var(--ink-2);font-size:15px;line-height:1.75}
-.home-recap p:first-of-type{font-size:15.5px;color:var(--ink)}
+.gcard .opp{font-weight:700;font-size:22px;letter-spacing:-.015em;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcard .sub{font-size:13px;color:var(--ink-mut);margin-top:2px}
+.gcard .score{font-weight:900;font-stretch:112%;font-size:40px;letter-spacing:-.04em;line-height:1;
+  font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+.gcard .top{font-size:13px;color:var(--ink-mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+/* the match report: what happened last time out, written from the game's own numbers */
+.home-recap{margin-top:36px;display:none}
+.home-recap .rc{background:var(--paper);border-radius:6px;padding:32px 36px 28px}
+.home-recap h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut);font-weight:600;margin-bottom:8px}
+.home-recap .rsub{font-family:var(--serif);font-style:italic;font-size:30px;line-height:1.1;color:var(--ink);
+  letter-spacing:-.01em;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--ink)}
+.home-recap p{margin:0 0 13px;color:var(--ink-2);font-size:16px;line-height:1.72;max-width:760px}
+.home-recap p:first-of-type{font-size:19px;color:var(--ink);line-height:1.55}
 .home-recap p:last-child{margin-bottom:0}
-.about-wrap{max-width:720px;margin:0 auto;padding:0 16px 30px;text-align:center}
-.about-wrap img{width:104px;height:104px;object-fit:contain;margin-bottom:18px;
-  filter:drop-shadow(0 4px 12px rgba(0,25,80,.28))}
-.about-wrap p{color:var(--ink-2);font-size:15px;line-height:1.75;margin:0 0 16px;text-align:left}
-.about-cta{display:inline-block;margin-top:8px;background:var(--afa-blue);color:#fff;text-decoration:none;
-  padding:13px 26px;font-weight:700;letter-spacing:.1em;font-size:13px}
-.about-cta:hover{background:var(--afa-blue-lt)}
-.home-photo{max-width:720px;margin:22px auto 20px;padding:0 16px}
-.home-photo img{width:100%;display:block;border:1px solid var(--hairline);border-top:4px solid var(--afa-blue);
-  box-shadow:0 12px 32px rgba(8,25,80,.20)}
-.home-actions{padding-bottom:26px}
+/* season in numbers: the same games as the stream, six figures */
+.home-numbers{margin-top:44px;display:none}
+.home-numbers .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,45%),1fr));gap:22px;padding-top:22px}
+.home-numbers .n .lab{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut)}
+.home-numbers .n .val{font-weight:800;font-size:40px;letter-spacing:-.04em;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.home-numbers .n .sub{font-size:13px;color:var(--ink-mut);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.about-wrap{max-width:760px;margin:0 auto;padding:0 16px 40px}
+.about-wrap img{width:72px;height:72px;object-fit:contain;margin-bottom:18px;display:block}
+.about-wrap p{color:var(--ink-2);font-size:17px;line-height:1.75;margin:0 0 18px}
+.about-wrap p:first-of-type{font-family:var(--serif);font-style:italic;font-size:30px;line-height:1.2;color:var(--ink);letter-spacing:-.01em}
+.about-cta{display:inline-flex;align-items:center;min-height:46px;margin-top:8px;background:var(--ink);color:#fff;text-decoration:none;
+  padding:0 22px;border-radius:999px;font-weight:600;font-size:14px}
+.about-cta:hover{background:var(--afa-blue)}
+.home-photo{margin:44px 0 0;display:flex;flex-direction:column;gap:12px}
+.home-photo img{width:100%;display:block;border-radius:6px}
+.home-photo .cap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* the doors: three chapters, hairline-divided */
+.home-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:0;
+  margin-top:44px;padding-bottom:56px;border-top:1px solid var(--ink)}
+.home-actions .act{background:transparent;border:0;border-right:1px solid var(--line);padding:28px 26px 28px 0;margin-right:26px;
+  text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:10px;color:var(--ink)}
+.home-actions .act:last-child{border-right:0;margin-right:0}
+.act .k{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut)}
+.act .t{font-weight:700;font-size:22px;letter-spacing:-.02em;color:var(--ink)}
+.act:hover .t{color:var(--afa-blue)}
+.act .d{color:var(--ink-mut);font-size:15px;line-height:1.6}
+/* the foot of every page: the address, the map, the line */
+.site-foot{max-width:1100px;margin:0 auto;padding:40px 16px 36px;border-top:1px solid var(--ink)}
+.site-foot .big{font-weight:900;font-size:clamp(26px,5.4vw,72px);letter-spacing:-.05em;line-height:.9;overflow-wrap:anywhere}
+.site-foot .cols{display:flex;flex-wrap:wrap;gap:12px 28px;margin-top:22px}
+.site-foot .cols button,.site-foot .cols a{background:none;border:0;padding:0;font:inherit;font-weight:600;font-size:14px;
+  color:var(--ink);text-decoration:none;cursor:pointer}
+.site-foot .cols button:hover,.site-foot .cols a:hover{color:var(--afa-blue)}
+.site-foot .fine{margin-top:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
 /* ============ ADMIN WALL ============ */
 body:not(.admin) .adminonly{display:none !important}
-.amodal{position:fixed;inset:0;background:rgba(8,14,32,.72);display:none;align-items:center;
+.amodal{position:fixed;inset:0;background:rgba(16,16,16,.6);display:none;align-items:center;
   justify-content:center;z-index:400;padding:18px}
 .amodal.open{display:flex}
-.abox{background:#fff;border-top:4px solid var(--afa-blue);box-shadow:0 18px 48px rgba(0,0,0,.5);
-  padding:22px 24px;max-width:360px;width:100%}
-.abox h3{color:var(--afa-blue);letter-spacing:.16em;font-size:14px;margin-bottom:8px}
-.abox p{font-size:13px;color:var(--ink-2);margin:0 0 12px}
-.abox input{width:100%;border:1px solid var(--steel);padding:11px 12px;font-size:16px}
+.abox{background:#fff;border:1px solid var(--ink);border-radius:8px;box-shadow:0 18px 48px rgba(0,0,0,.3);
+  padding:24px 26px;max-width:360px;width:100%}
+.abox h3{color:var(--ink);letter-spacing:.14em;font-size:13px;margin-bottom:8px}
+.abox p{font-size:14px;color:var(--ink-2);margin:0 0 12px}
+.abox input{width:100%;border:1px solid var(--ink);border-radius:6px;padding:11px 12px;font-size:16px}
 .abox .err{color:var(--crit);font-size:12.5px;font-weight:600;min-height:18px;margin-top:6px}
 .abox .acts{display:flex;gap:8px;margin-top:8px}
 .abox .acts .btn{flex:1}
-#menu-admin{border-top:1px solid var(--line);color:var(--ink-mut)}
+#menu-admin{border-top:1px solid var(--ink);color:var(--ink-mut)}
 
 /* collapsible game setup + roster manager */
 h2.tgl{cursor:pointer;user-select:none}
@@ -153,89 +210,86 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 #setup-card.collapsed #setup-body{display:none}
 #manage-roster-card.collapsed #mroster-body{display:none}
 
-/* ============ TEAM BASEBALL CARDS ============ */
-.team-sec{max-width:1100px;margin:6px auto 20px}
-.team-sec>h2{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--afa-blue-dk);
-  text-align:center;margin:22px 0 16px;position:relative}
-.team-sec>h2::after{content:'';display:block;width:64px;height:3px;background:#c9a227;margin:8px auto 0}
+/* ============ TEAM CARDS ============ */
+.team-sec{max-width:1100px;margin:6px auto 28px}
+.team-sec>h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut);font-weight:600;
+  text-align:left;margin:26px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--ink)}
 /* flex, not grid: a part-full last row centres itself instead of hugging the
    left, so every section reads centred at any card count and screen width */
 .bbgrid{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:stretch}
-.bbcard{flex:0 1 270px;max-width:290px;background:linear-gradient(160deg,#00276b,#003594 60%,#00276b);
-  border:1px solid #c9a227;box-shadow:0 8px 24px rgba(6,16,50,.28);padding:10px;
+.bbcard{flex:0 1 270px;max-width:290px;background:#fff;border:1px solid var(--ink);border-radius:6px;padding:10px;
   display:flex;flex-direction:column}
 .bbcard .frame{flex:1;display:flex;flex-direction:column}
-.bbcard .frame{border:1px solid rgba(255,255,255,.35);padding:8px}
-.bbcard .ph{aspect-ratio:3/4;background:linear-gradient(180deg,#c9d4ea,#8fa3cc);position:relative;overflow:hidden}
+.bbcard .ph{aspect-ratio:3/4;background:var(--paper);position:relative;overflow:hidden;border-radius:4px}
 .bbcard .ph img{width:100%;height:100%;object-fit:cover;display:block}
 .bbcard .ph .noimg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
-.bbcard .ph .noimg img{width:84px;height:84px;object-fit:contain;opacity:.55}
-.bbcard .ph .noimg span{font-size:10px;letter-spacing:.14em;color:#2c3e66;font-weight:700}
+.bbcard .ph .noimg img{width:84px;height:84px;object-fit:contain;opacity:.45}
+.bbcard .ph .noimg span{font-size:10px;letter-spacing:.14em;color:var(--ink-mut);font-weight:700}
 /* classic corner ribbon: fixed 160px band rotated about its own centre at the
    top-left corner, text centred — the band's ENDS clip on the corner (the
    look), but the label itself always lands inside the photo at any card width */
 .bbcard .badge{position:absolute;top:34px;left:-30px;width:160px;transform:rotate(-45deg);text-align:center;
-  background:#c9a227;color:#0d1220;font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 0;
-  box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  background:var(--afa-blue);color:#fff;font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 0;
+  box-shadow:0 2px 6px rgba(0,0,0,.25)}
 /* min-height so a two-line name (a rank + full name) leaves the card the same
    height as a one-line one — otherwise a row of cards steps up and down */
-.bbcard .nm{background:#c9a227;color:#0d1220;text-align:center;font-weight:800;letter-spacing:.06em;
-  padding:8px 10px;font-size:15px;margin-top:8px;min-height:60px;   /* = a two-line name */
-  display:flex;align-items:center;justify-content:center}
-.bbcard .role{text-align:center;color:#b9c6e8;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
-  padding:6px 0 2px}
-.bbcard .fields{background:#fff;margin-top:8px;padding:10px 12px}
-.bbcard .fields .fr{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.bbcard .nm{color:var(--ink);text-align:left;font-weight:700;letter-spacing:-.015em;
+  padding:10px 4px 0;font-size:18px;line-height:1.2;min-height:60px;   /* = a two-line name */
+  display:flex;align-items:center;justify-content:flex-start}
+.bbcard .role{text-align:left;color:var(--afa-blue);font-family:var(--serif);font-style:italic;font-size:17px;
+  padding:2px 4px 4px;min-height:14px}
+.bbcard .fields{margin-top:8px;padding:4px 4px 0;border-top:1px solid var(--ink)}
+.bbcard .fields .fr{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
 .bbcard .fields .fr:last-child{border-bottom:none}
-.bbcard .fields .fl{color:var(--ink-mut);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:2px}
-.bbcard .fields .fv{color:var(--ink);font-weight:650;text-align:right}
-.bbcard .cstats{display:flex;margin-top:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22)}
-.bbcard .cstats>div{flex:1;text-align:center;padding:7px 2px;border-right:1px solid rgba(255,255,255,.18)}
+.bbcard .fields .fl{color:var(--ink-mut);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;padding-top:2px}
+.bbcard .fields .fv{color:var(--ink);font-weight:600;text-align:right}
+.bbcard .cstats{display:flex;margin-top:10px;background:var(--paper);border-radius:4px}
+.bbcard .cstats>div{flex:1;text-align:center;padding:9px 2px;border-right:1px solid var(--line)}
 .bbcard .cstats>div:last-child{border-right:none}
-.bbcard .cstats .v{color:#f0d488;font-weight:800;font-size:17px;line-height:1.1;font-variant-numeric:tabular-nums}
-.bbcard .cstats .l{color:#b9c6e8;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.bbcard .cstats .v{color:var(--ink);font-weight:800;font-size:20px;line-height:1.1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.bbcard .cstats .l{color:var(--ink-mut);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px;font-weight:600}
 .rtable .lk{color:var(--afa-blue);font-size:10px;letter-spacing:.08em;font-weight:700;white-space:nowrap}
 .rtable .nmtxt{font-weight:650}
 .bench{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
 .bench .bhead{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mut);font-weight:700;
   margin-bottom:7px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #bench-strip{display:flex;flex-wrap:wrap;gap:7px}
-.bchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--steel);background:#fbfcfe;
-  padding:9px 12px;font-size:12.5px;font-weight:600;min-height:40px}
-.bchip:hover{border-color:var(--afa-blue);background:#eef3fc;color:var(--afa-blue)}
-.bchip.gk{border-left:3px solid #c9a227}
+.bchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--steel);background:#fff;border-radius:999px;
+  padding:9px 14px;font-size:12.5px;font-weight:600;min-height:40px}
+.bchip:hover{border-color:var(--afa-blue);background:var(--paper);color:var(--afa-blue)}
+.bchip.gk{border-color:var(--afa-blue)}
 .bchip .n{font-weight:800;color:var(--afa-blue);font-variant-numeric:tabular-nums}
 .bchip .mn{color:var(--ink-mut);font-size:11px;font-variant-numeric:tabular-nums}
 .pcard .subout{margin-left:6px;border:1px solid var(--steel);background:#fff;font-size:10px;font-weight:700;
-  color:var(--ink-mut);padding:3px 7px;letter-spacing:.06em}
+  color:var(--ink-mut);padding:3px 7px;letter-spacing:.06em;border-radius:999px}
 .pcard .subout:hover{border-color:var(--crit);color:var(--crit)}
 .gr-wrap{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
 .gr-head{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mut);font-weight:700;
   margin-bottom:8px;display:flex;align-items:center;gap:10px}
 #g-roster{display:flex;flex-wrap:wrap;gap:6px}
-#g-roster label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--steel);background:#fbfcfe;
-  padding:7px 10px;font-size:12.5px;cursor:pointer;min-height:38px}
-#g-roster label.on{border-color:var(--afa-blue);background:#eef3fc;color:var(--afa-blue);font-weight:600}
-.bbcard .ovr{position:absolute;top:8px;right:8px;background:#0d1220;color:#f0d488;border:1px solid #c9a227;
+#g-roster label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--steel);background:#fff;border-radius:999px;
+  padding:7px 12px;font-size:12.5px;cursor:pointer;min-height:38px}
+#g-roster label.on{border-color:var(--afa-blue);background:var(--paper);color:var(--afa-blue);font-weight:600}
+.bbcard .ovr{position:absolute;top:8px;right:8px;background:var(--ink);color:#fff;
   width:46px;height:46px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .bbcard .ovr .n{font-size:19px;font-weight:800;line-height:1}
-.bbcard .ovr .t{font-size:7.5px;letter-spacing:.1em;color:#b9c6e8}
+.bbcard .ovr .t{font-size:7.5px;letter-spacing:.1em;color:#c9c9c4}
 #tm-list .tmrow{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
 #tm-list .tmrow .sec{font-size:10px;letter-spacing:.1em;color:var(--ink-mut);font-weight:700;width:52px}
 #tm-list .tmrow b{flex:1;min-width:140px}
-#tm-list .tmrow button{border:1px solid var(--steel);background:#fff;padding:5px 10px;font-size:12px;cursor:pointer}
+#tm-list .tmrow button{border:1px solid var(--steel);background:#fff;padding:5px 10px;font-size:12px;cursor:pointer;border-radius:999px}
 #tm-list .tmrow button:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
-#tm-editor{border-top:2px solid var(--afa-blue);margin-top:12px;padding-top:12px}
-#tm-photo-prev{width:96px;height:128px;object-fit:cover;border:1px solid var(--steel);background:#eef1f6;display:block}
+#tm-editor{border-top:1px solid var(--ink);margin-top:12px;padding-top:12px}
+#tm-photo-prev{width:96px;height:128px;object-fit:cover;border:1px solid var(--steel);background:var(--paper);display:block}
 
 /* ============ GALLERY ============ */
 .galgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;max-width:1100px;margin:0 auto;padding:0 4px}
-.galgrid .gph{cursor:pointer;background:#fff;border:1px solid var(--hairline);padding:7px;box-shadow:0 2px 8px rgba(10,20,60,.08)}
-.galgrid .gph:hover{box-shadow:0 8px 22px rgba(8,25,80,.18)}
-.galgrid .gph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.galgrid .gph{cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:6px;padding:7px}
+.galgrid .gph:hover{border-color:var(--ink)}
+.galgrid .gph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;border-radius:3px}
 .galgrid .gph .cap{font-size:12px;color:var(--ink-2);padding:7px 2px 1px;text-align:center;min-height:14px}
-#lightbox{position:fixed;inset:0;background:rgba(5,10,25,.92);display:none;align-items:center;justify-content:center;
+#lightbox{position:fixed;inset:0;background:rgba(16,16,16,.94);display:none;align-items:center;justify-content:center;
   z-index:500;flex-direction:column;padding:20px}
 #lightbox.open{display:flex}
 #lightbox img{max-width:94vw;max-height:80vh;object-fit:contain;border:2px solid #fff;background:#000}
@@ -245,27 +299,28 @@ h2.tgl:hover{color:var(--afa-blue-lt)}
 #gal-list .glrow{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
 #gal-list .glrow img{width:76px;height:57px;object-fit:cover;border:1px solid var(--steel);flex:none}
 #gal-list .glrow input{flex:1;min-width:150px;border:1px solid var(--steel);padding:7px 9px}
-#gal-list .glrow button{border:1px solid var(--steel);background:#fff;padding:5px 10px;font-size:12px;cursor:pointer}
+#gal-list .glrow button{border:1px solid var(--steel);background:#fff;padding:5px 10px;font-size:12px;cursor:pointer;border-radius:999px}
 #gal-list .glrow button:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
 
 main{max-width:1240px;margin:0 auto;padding:16px}
-section.tab{display:none}
+section.tab{display:none;max-width:1240px;margin:0 auto;padding:12px 16px 40px}
 section.tab.on{display:block}
+#tab-home{max-width:none;padding:0}
 
 /* ============ CARDS / GENERIC ============ */
-.card{background:var(--card);border:1px solid var(--hairline);box-shadow:0 1px 2px rgba(10,20,60,.05);
-  padding:14px 16px;margin-bottom:14px}
-.card>h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--afa-blue);
-  border-bottom:2px solid var(--afa-blue);display:inline-block;padding-bottom:4px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:16px 18px;margin-bottom:14px}
+.card>h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);
+  border-bottom:1px solid var(--ink);display:inline-block;padding-bottom:6px;margin-bottom:12px;font-weight:700}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
 .fld{display:flex;flex-direction:column;gap:3px}
 .fld label{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);font-weight:600}
-.fld input,.fld select,.fld textarea{border:1px solid var(--steel);padding:8px 10px;background:#fff;min-width:0}
+.fld input,.fld select,.fld textarea{border:1px solid var(--steel);border-radius:6px;padding:8px 10px;background:#fff;min-width:0}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--afa-blue-lt);outline-offset:-1px}
-.btn{border:1px solid var(--steel);background:#fff;padding:9px 16px;font-weight:600;letter-spacing:.04em}
+.btn{border:1px solid var(--ink);background:#fff;padding:9px 16px;font-weight:600;letter-spacing:.02em;border-radius:999px;color:var(--ink)}
 .btn:hover{border-color:var(--afa-blue);color:var(--afa-blue)}
-.btn.pri{background:var(--afa-blue);border-color:var(--afa-blue);color:#fff}
-.btn.pri:hover{background:var(--afa-blue-lt);color:#fff}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.pri:hover{background:var(--afa-blue);border-color:var(--afa-blue);color:#fff}
 .btn.danger{border-color:var(--crit);color:var(--crit)}
 .btn.danger:hover{background:var(--crit);color:#fff}
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -279,9 +334,9 @@ details.help .bd{font-size:12.5px;color:var(--ink-2);padding:8px 0 0;max-width:9
 details.help .bd b{color:var(--ink)}
 
 /* ============ SCOREBOARD ============ */
-.sb{position:sticky;top:0;z-index:40;background:var(--afa-blue-dk);color:#fff;
+.sb{position:sticky;top:0;z-index:40;background:var(--ink);color:#fff;
   display:flex;align-items:center;gap:14px;padding:8px 16px;flex-wrap:wrap;
-  border-bottom:3px solid #c9a227}
+  border-bottom:3px solid var(--afa-blue);border-radius:6px 6px 0 0}
 .sb .teamside{display:flex;align-items:center;gap:9px;min-width:0}
 .sb img.tl{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:50%;padding:2px}
 .sb .gen{width:38px;height:38px;border-radius:50%;background:#5a6472;color:#fff;display:flex;
@@ -295,8 +350,8 @@ details.help .bd b{color:var(--ink)}
 .sb .clock:hover{color:#ffd75e}
 .sb .halfrow{display:flex;gap:4px}
 .sb .halfrow button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#cfd8ee;
-  font-size:10.5px;padding:2px 8px;font-weight:700}
-.sb .halfrow button.on{background:#fff;color:var(--afa-blue-dk);border-color:#fff}
+  font-size:10.5px;padding:2px 8px;font-weight:700;border-radius:999px}
+.sb .halfrow button.on{background:#fff;color:var(--ink);border-color:#fff}
 .sb .ctl{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
 .sb .ctl .btn{padding:7px 12px;font-size:12.5px;background:rgba(255,255,255,.1);
   border-color:rgba(255,255,255,.3);color:#fff}
@@ -306,9 +361,9 @@ details.help .bd b{color:var(--ink)}
 
 /* ============ PLAYER GRID ============ */
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
-.pcard{background:var(--card);border:1px solid var(--hairline);border-top:3px solid var(--afa-blue);
+.pcard{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--afa-blue);border-radius:6px;
   padding:9px 10px 10px}
-.pcard.gkon{border-top-color:#c9a227}
+.pcard.gkon{border-top-color:var(--ink)}
 .pcard .hd{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
 .pcard .no{font-size:19px;font-weight:800;color:var(--afa-blue);min-width:30px;font-variant-numeric:tabular-nums}
 .pcard .nm{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -317,9 +372,9 @@ details.help .bd b{color:var(--ink)}
 /* the labels are words now, so the row WRAPS — a fixed eight-column grid cannot
    shrink below its text and pushed the last buttons off the card on a phone */
 .pcard .btns{display:flex;flex-wrap:wrap;gap:4px}
-.pcard .btns button{flex:1 1 auto;padding:8px 7px;border:1px solid var(--steel);background:#fbfcfe;
-  font-size:10.5px;font-weight:700;color:var(--ink-2);min-height:36px;white-space:nowrap}
-.pcard .btns button:hover{border-color:var(--afa-blue);color:var(--afa-blue);background:#eef3fc}
+.pcard .btns button{flex:1 1 auto;padding:8px 7px;border:1px solid var(--steel);background:#fff;
+  font-size:10.5px;font-weight:700;color:var(--ink-2);min-height:36px;white-space:nowrap;border-radius:4px}
+.pcard .btns button:hover{border-color:var(--afa-blue);color:var(--afa-blue);background:var(--paper)}
 .pcard .btns button.goal{flex:1 0 100%;background:var(--afa-blue);border-color:var(--afa-blue);color:#fff;
   font-size:13px;min-height:44px;letter-spacing:.08em}
 .pcard .btns button.goal:hover{background:var(--afa-blue-lt)}
@@ -328,19 +383,19 @@ details.help .bd b{color:var(--ink)}
 
 /* ============ OPPONENT / TEAM PANEL ============ */
 .opp-panel .btns{display:flex;gap:5px;flex-wrap:wrap}
-.opp-panel .btns button{padding:9px 13px;border:1px solid var(--steel);background:#fbfcfe;font-weight:700;font-size:12px}
+.opp-panel .btns button{padding:9px 13px;border:1px solid var(--steel);background:#fff;font-weight:700;font-size:12px;border-radius:4px}
 .opp-panel .btns button:hover{border-color:var(--series-2);color:#b34712;background:#fdf1ea}
 .opp-panel .btns button.og{background:#8c3f14;border-color:#8c3f14;color:#fff}
 .opp-panel .btns button.og:hover{background:#a54e1c}
 .gksel{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.gksel select{border:1px solid var(--steel);padding:7px 9px}
+.gksel select{border:1px solid var(--steel);padding:7px 9px;border-radius:6px}
 .gksel .lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);font-weight:700}
 
 /* ============ EVENT LOG ============ */
-.elog{max-height:340px;overflow:auto;border:1px solid var(--line)}
+.elog{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:6px}
 .elog table{width:100%;border-collapse:collapse;font-size:12.5px}
 .elog td{padding:5px 9px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
-.elog tr:hover td{background:#f4f7fd}
+.elog tr:hover td{background:var(--paper)}
 .elog .evx{border:none;background:none;color:var(--ink-mut);font-size:13px;padding:0 4px}
 .elog .evx:hover{color:var(--crit)}
 .elog .tOPP{color:#a04d1c;font-weight:600}
@@ -351,12 +406,12 @@ details.help .bd b{color:var(--ink)}
 /* ============ TABLES ============ */
 .tblwrap{overflow-x:auto}
 table.stats{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
-table.stats th{background:var(--afa-blue);color:#fff;padding:7px 9px;text-align:right;
-  font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;user-select:none;position:sticky;top:0}
+table.stats th{background:#fff;color:var(--ink);padding:8px 9px;text-align:right;border-bottom:1px solid var(--ink);
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;user-select:none;position:sticky;top:0}
 table.stats th:first-child,table.stats th.l,table.stats td.l{text-align:left}
-table.stats td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
-table.stats tr:nth-child(even) td{background:#f7f9fc}
-table.stats tr.tot td{font-weight:700;border-top:2px solid var(--afa-blue);background:#eef2fa}
+table.stats td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.stats tr:nth-child(even) td{background:var(--paper)}
+table.stats tr.tot td{font-weight:700;border-top:1px solid var(--ink);background:var(--paper)}
 table.stats th .arr{font-size:9px;opacity:.9}
 
 /* ============ ROSTER ============ */
@@ -368,67 +423,72 @@ table.stats th .arr{font-size:9px;opacity:.9}
 .rtable .num-in{width:56px;text-align:center;font-weight:700}
 
 /* ============ SEASON ============ */
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
-.tile{background:var(--card);border:1px solid var(--hairline);border-top:3px solid var(--afa-blue);padding:12px 14px}
-.tile .lab{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mut);font-weight:700}
-.tile .val{font-size:30px;font-weight:700;margin-top:2px}
-.tile .sub{font-size:11.5px;color:var(--ink-2)}
-.dropzone{border:2px dashed var(--steel);padding:22px;text-align:center;color:var(--ink-2);background:#fbfcfe}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:18px;margin-bottom:18px}
+.tile{background:transparent;border-top:1px solid var(--ink);padding:12px 0 6px}
+.tile .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut);font-weight:600}
+.tile .val{font-size:36px;font-weight:800;letter-spacing:-.04em;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.tile .sub{font-size:12px;color:var(--ink-mut);margin-top:2px}
+.dropzone{border:1px dashed var(--ink);border-radius:6px;padding:22px;text-align:center;color:var(--ink-2);background:var(--paper)}
 .dropzone.over{border-color:var(--afa-blue);background:#eef3fc}
 .chartgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:920px){.chartgrid{grid-template-columns:1fr}}
-.chartcard{background:var(--surface-1);border:1px solid var(--hairline);padding:12px 14px}
-.chartcard h3{font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin-bottom:2px}
+.chartcard{background:var(--surface-1);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.chartcard h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:2px}
 .chartcard .sub{font-size:11.5px;color:var(--ink-mut);margin-bottom:8px}
 .legend{display:flex;gap:14px;font-size:11.5px;color:var(--ink-2);margin:2px 0 6px;flex-wrap:wrap}
 .legend .k{display:inline-flex;align-items:center;gap:5px}
 .legend .sw{width:12px;height:12px;border-radius:2px}
 .legend .ln{width:16px;height:2px}
-.viz-tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--hairline);
+.viz-tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--ink);border-radius:6px;
   box-shadow:0 2px 8px rgba(10,20,60,.18);padding:7px 10px;font-size:12px;z-index:99;display:none;min-width:110px}
 .viz-tip .t{font-weight:700;margin-bottom:3px}
 .viz-tip .r{display:flex;align-items:center;gap:6px;margin-top:2px}
 .viz-tip .r .key{width:12px;height:2.5px;flex:none}
 .viz-tip .r .v{font-weight:700;margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums}
-svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+svg text{font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
 
 /* ============ GOAL MAP ============ */
 #goalmap-wrap{position:relative;max-width:660px;margin:6px 0 4px}
-#goalmap{width:100%;display:block;touch-action:manipulation;cursor:crosshair;background:#f7f8fb;border:1px solid var(--line)}
-.gm-pop{position:absolute;z-index:60;background:#fff;border:1px solid var(--hairline);
+#goalmap{width:100%;display:block;touch-action:manipulation;cursor:crosshair;background:var(--paper);border:1px solid var(--line);border-radius:6px}
+.gm-pop{position:absolute;z-index:60;background:#fff;border:1px solid var(--ink);border-radius:8px;
   box-shadow:0 6px 22px rgba(10,20,60,.25);padding:12px;width:250px;display:none}
 .gm-pop .seg{display:flex;margin-bottom:8px}
-.gm-pop .seg button{flex:1;padding:7px 4px;border:1px solid var(--steel);background:#fbfcfe;
+.gm-pop .seg button{flex:1;padding:7px 4px;border:1px solid var(--steel);background:#fff;
   font-size:11px;font-weight:700;color:var(--ink-2)}
 .gm-pop .seg button+button{border-left:none}
 .gm-pop .seg button.on{background:var(--afa-blue);border-color:var(--afa-blue);color:#fff}
 .gm-pop .seg.oc button.on{background:#444;border-color:#444}
 .gm-pop label.chk{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;margin:8px 0}
-.gm-pop select,.gm-pop input[type=text]{width:100%;border:1px solid var(--steel);padding:7px 9px;margin-bottom:2px}
+.gm-pop select,.gm-pop input[type=text]{width:100%;border:1px solid var(--steel);border-radius:6px;padding:7px 9px;margin-bottom:2px}
 .gm-pop .acts{display:flex;gap:6px;margin-top:9px}
 .gm-pop .acts .btn{flex:1;padding:8px 4px;font-size:12px}
 .gm-list{font-size:12px;max-height:150px;overflow:auto;margin-top:8px}
-.gm-list .it{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
-  padding:3px 7px;margin:0 5px 5px 0;background:#fff}
+.gm-list .it{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;
+  padding:3px 9px;margin:0 5px 5px 0;background:#fff}
 .gm-list .dot{width:10px;height:10px;border-radius:50%;flex:none}
 .gm-list button{border:none;background:none;color:var(--ink-mut);padding:0 2px;font-size:12px}
 .gm-list button:hover{color:var(--crit)}
 
 /* toast */
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--afa-blue-dk);
-  color:#fff;padding:9px 18px;font-weight:600;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.3);
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);
+  color:#fff;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.3);
   opacity:0;transition:opacity .25s;z-index:120;pointer-events:none;max-width:90vw}
 #toast.on{opacity:1}
 
-@media print{header.app,.sb,.menu-wrap,.btn,.pcard .btns,.opp-panel{display:none!important}}
+@media print{header.app,.sb,.menu-wrap,.btn,.pcard .btns,.opp-panel,.site-foot{display:none!important}}
 
 /* ============ MOBILE (most users are on phones) ============ */
+@media (max-width:900px){
+  .topnav{display:none}
+  .give-pill{margin-left:auto}
+}
 @media (max-width:640px){
-  header.app{padding:8px 12px;gap:10px}
-  header.app img.crest{width:40px;height:40px}
-  header.app .ttl .l1{font-size:14.5px}
-  header.app .ttl .l2{font-size:9px;letter-spacing:.14em}
-  main{padding:10px}
+  header.app{padding:0 14px;gap:10px;height:64px}
+  header.app img.crest{width:30px;height:30px}
+  header.app .ttl .l1{font-size:13.5px}
+  header.app .ttl .l2{display:none}
+  .give-pill{padding:0 14px;min-height:36px;font-size:13px}
+  section.tab{padding:10px 12px 32px}
   .sb{gap:8px;padding:8px 10px}
   .sb .num{font-size:30px;min-width:40px}
   .sb .clock{font-size:20px}
@@ -438,13 +498,19 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   .sb .ctl .btn{padding:8px 8px;font-size:11px;flex:1;text-align:center}
   /* 16px inputs stop iOS Safari from zooming the page on focus */
   .fld input,.fld select,.fld textarea,.gm-pop select,.gm-pop input[type=text],#note-in{font-size:16px}
-  .home-hero{padding:32px 12px 14px}
-  .home-hero img{width:110px;height:110px}
-  .home-recap .rc{padding:16px 15px}
-  .home-recap p{font-size:14.5px}
-  .gcard{gap:9px;padding:10px}
+  .home-mast{padding:26px 0 4px}
+  .home-give .gv{padding:26px 22px 24px}
+  .home-recap .rc{padding:22px 18px 18px}
+  .home-recap .rsub{font-size:24px}
+  .home-recap p{font-size:15px}
+  .gcard{grid-template-columns:32px minmax(0,1fr) auto 18px;gap:12px;padding:16px 0}
+  .gcard .res{width:28px;height:28px;font-size:11px}
   .gcard .top{display:none}
-  .gcard .score{font-size:18px}
+  .gcard .opp{font-size:18px}
+  .gcard .score{font-size:28px}
+  .gsum{padding:18px 16px 14px}
+  .home-actions .act{border-right:0;margin-right:0;padding:22px 0;border-bottom:1px solid var(--line)}
+  .home-actions .act:last-child{border-bottom:0}
   .pgrid{grid-template-columns:1fr}
   .tiles{grid-template-columns:repeat(2,1fr)}
 }
@@ -460,9 +526,18 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <header class="app">
   <img class="crest" id="crest" alt="U.S. Air Force Academy crest">
   <div class="ttl">
-    <div class="l1">AIR FORCE TEAM HANDBALL</div>
+    <div class="l1">Air Force Team Handball</div>
     <div class="l2">United States Air Force Academy</div>
   </div>
+  <nav class="topnav" aria-label="Pages">
+    <button type="button" data-goto="home" class="on">Home</button>
+    <button type="button" data-goto="roster">Team</button>
+    <button type="button" data-goto="season">Season</button>
+    <button type="button" data-goto="gallery">Gallery</button>
+    <button type="button" data-goto="about">About</button>
+  </nav>
+  <a class="pill give-pill" href="https://give.usafa.org/schools/UnitedStatesAirForceAcademy/falcon-funder/pages/usafa-team-handball-club/?a=1"
+     target="_blank" rel="noopener">Give <span aria-hidden="true">↗</span></a>
   <div class="menu-wrap">
     <button id="menu-btn" aria-label="Menu" aria-expanded="false">
       <span></span><span></span><span></span>
@@ -481,51 +556,68 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   </div>
 </header>
 
-<!-- ================= HOME / WELCOME ================= -->
+<!-- ================= HOME / WELCOME =================
+     Order matters: masthead, then the Giving Tuesday ask and the recent games
+     (what a visitor came for), then the report, the numbers, the photo and
+     the three doors. -->
 <section class="tab on" id="tab-home">
-  <div class="home-hero">
-    <img id="home-crest" alt="U.S. Air Force Academy crest">
-    <h1>AIR FORCE TEAM HANDBALL</h1>
-    <div class="sub">United States Air Force Academy</div>
-  </div>
-
-  <div class="home-give" id="home-give">
-    <div class="gv">
-      <div class="gv-k">Giving Tuesday</div>
-      <div class="gv-h">Help Air Force team handball win on donors</div>
-      <div class="gv-d">The Giving Tuesday competition is decided by the number of unique donors, not dollars
-        raised — every gift counts, whatever its size, and counts the moment it is made. Alumni, parents,
-        family and friends: give through our link, then pass it on.</div>
-      <div class="gv-row">
-        <a class="gv-go" id="give-link" href="https://give.usafa.org/schools/UnitedStatesAirForceAcademy/givingtuesday/pages/cadet-clubs/handball" target="_blank" rel="noopener">GIVE THROUGH OUR LINK ▸</a>
-        <button class="gv-share" id="give-share" type="button">SHARE THE LINK</button>
+  <div class="home-wrap">
+    <div class="home-mast">
+      <div class="kicker">
+        <img id="home-crest" alt="U.S. Air Force Academy crest">
+        <div class="label"><span>United States Air Force Academy</span><span>Cadet club sport</span></div>
       </div>
+      <h1><span class="w1">AIR FORCE</span><span class="w2">team handball</span></h1>
     </div>
   </div>
 
-  <div class="home-stream" id="home-stream"></div>
+  <!-- season highlights, from the games themselves: results, record, leaders -->
+  <div class="home-ticker" id="home-ticker" aria-hidden="true"></div>
 
-  <div class="home-recap" id="home-recap"></div>
-  <div class="home-photo"><img id="home-team-photo" alt="Air Force team handball team photo"></div>
-  <div style="max-width:880px;margin:0 auto;padding:0 16px">
+  <div class="home-wrap">
     <button id="home-resume"></button>
-  </div>
-  <div class="home-actions">
-    <button class="act" data-goto="game">
-      <div class="t">TRACK A GAME ▸</div>
-      <div class="d">Set up the matchup, then log goals, shots, saves, 7-meters and cards with one
-        tap per play — plus a tap-on-goal shot map. The Excel workbook downloads at the final whistle.</div>
-    </button>
-    <button class="act" data-goto="roster">
-      <div class="t">MEET THE TEAM ▸</div>
-      <div class="d">The coaches and the cadets of Air Force team handball — positions, hometowns,
-        majors and intended career fields, card by card.</div>
-    </button>
-    <button class="act" data-goto="season">
-      <div class="t">SEASON ▸</div>
-      <div class="d">Drop in exported game files from any computer for the season record, sortable
-        player and keeper totals, and charts — then export the season report.</div>
-    </button>
+
+    <div class="home-give" id="home-give">
+      <div class="gv">
+        <div class="gv-k">Giving Tuesday</div>
+        <div class="gv-h">Help Air Force team handball win on donors.</div>
+        <div class="gv-d">The Giving Tuesday competition is decided by the number of unique donors, not dollars
+          raised — every gift counts, whatever its size, and counts the moment it is made. Alumni, parents,
+          family and friends: give through our link, then pass it on.</div>
+        <div class="gv-row">
+          <a class="gv-go" id="give-link" href="https://give.usafa.org/schools/UnitedStatesAirForceAcademy/givingtuesday/pages/cadet-clubs/handball" target="_blank" rel="noopener">Give through our link <span aria-hidden="true">↗</span></a>
+          <button class="gv-share" id="give-share" type="button">Share the link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-stream" id="home-stream"></div>
+
+    <div class="home-recap" id="home-recap"></div>
+
+    <div class="home-numbers" id="home-numbers"></div>
+
+    <figure class="home-photo">
+      <img id="home-team-photo" alt="Air Force team handball team photo">
+    </figure>
+
+    <div class="home-actions">
+      <button class="act" data-goto="game">
+        <div class="t">Track a game <span aria-hidden="true">→</span></div>
+        <div class="d">Set up the matchup, then log goals, shots, saves, 7-meters and cards with one
+          tap per play — plus a tap-on-goal shot map. The Excel workbook downloads at the final whistle.</div>
+      </button>
+      <button class="act" data-goto="roster">
+        <div class="t">Roster <span aria-hidden="true">→</span></div>
+        <div class="d">The coaches and the cadets of Air Force team handball — positions, hometowns,
+          majors and intended career fields, card by card.</div>
+      </button>
+      <button class="act" data-goto="season">
+        <div class="t">The season <span aria-hidden="true">→</span></div>
+        <div class="d">Drop in exported game files from any computer for the season record, sortable
+          player and keeper totals, and charts — then export the season report.</div>
+      </button>
+    </div>
   </div>
 </section>
 
@@ -685,8 +777,8 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
       <h2>Team</h2>
       <div class="row">
         <button class="btn" id="btn-us-timeout">AIR FORCE TIMEOUT</button>
-        <div class="fld" style="flex-direction:row;align-items:center;gap:6px">
-          <input id="note-in" placeholder="note for the play-by-play…" style="border:1px solid var(--steel);padding:8px 10px;width:280px">
+        <div class="fld" style="flex-direction:row;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;max-width:100%">
+          <input id="note-in" placeholder="note for the play-by-play…" style="border:1px solid var(--steel);border-radius:6px;padding:8px 10px;width:280px;max-width:100%;min-width:0;flex:1 1 160px">
           <button class="btn" id="btn-note">ADD NOTE</button>
         </div>
       </div>
@@ -907,6 +999,20 @@ svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
     </div>
   </div>
 </section>
+
+<footer class="site-foot">
+  <div class="big">usafateamhandball.com</div>
+  <div class="cols">
+    <button type="button" data-goto="home">Home</button>
+    <button type="button" data-goto="roster">Team</button>
+    <button type="button" data-goto="season">Season</button>
+    <button type="button" data-goto="gallery">Gallery</button>
+    <button type="button" data-goto="about">About</button>
+    <a href="https://give.usafa.org/schools/UnitedStatesAirForceAcademy/falcon-funder/pages/usafa-team-handball-club/?a=1"
+       target="_blank" rel="noopener">Support the team ↗</a>
+  </div>
+  <div class="fine label"><span>© 2026 USAFA Team Handball</span><span>United States Air Force Academy · Colorado Springs</span></div>
+</footer>
 
 <div id="lightbox">
   <button class="x" id="lb-close" aria-label="Close">✕</button>
@@ -1380,6 +1486,7 @@ function showTab(name) {
     return;
   }
   $$('#menu button').forEach(x => x.classList.toggle('on', x.dataset.tab === name));
+  $$('.topnav button').forEach(x => x.classList.toggle('on', x.dataset.goto === name));
   $$('section.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + name));
   $('#menu').classList.remove('open');
   $('#menu-btn').setAttribute('aria-expanded', 'false');
@@ -1427,7 +1534,7 @@ function renderStream() {
       el('span', { cls: 'res', text: g.result || '—' }),
       el('span', { cls: 'meta' },
         el('span', { cls: 'opp', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent }),
-        el('span', { cls: 'sub', text: [g.date || 'date not recorded', g.comp].filter(Boolean).join(' · ') })),
+        el('span', { cls: 'sub', text: [g.date ? (typeof fmtGameDate === 'function' ? fmtGameDate(g.date) : g.date) : 'date not recorded', g.comp].filter(Boolean).join(' · ') })),
       el('span', { cls: 'score', text: g.us + '–' + g.them }),
       el('span', { cls: 'top', text: scorer === '—' ? '' : 'Top: ' + scorer }),
       el('span', { cls: 'chev', text: '▾', 'aria-hidden': 'true' }));
@@ -1440,7 +1547,37 @@ function fillSummary(host, g) {
   const paras = typeof gameRecap === 'function' ? gameRecap(g) : [];
   if (!paras.length) host.appendChild(el('p', { text: 'No match report could be written for this game.' }));
   for (const p of paras) host.appendChild(el('p', { text: p }));
-  host.appendChild(el('button', { cls: 'gsum-go', text: 'FULL SEASON STATS →', onclick: () => showTab('season') }));
+  host.appendChild(el('button', { cls: 'gsum-go', text: 'Full season stats →', onclick: () => showTab('season') }));
+}
+/* The season in numbers, under the report: the same games the stream shows,
+   reduced to the six figures a visitor asks for first. Hidden until there is
+   a game to count, like the stream. */
+function renderHomeNumbers() {
+  const host = $('#home-numbers'); if (!host) return;
+  host.textContent = '';
+  let games = [];
+  try { games = allSeasonGames(); } catch (e) { games = []; }
+  if (!games.length || typeof seasonAgg !== 'function') { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  const w = games.filter(g => g.result === 'W').length, l = games.filter(g => g.result === 'L').length,
+        t = games.filter(g => g.result === 'T').length;
+  const gf = games.reduce((s, g) => s + g.us, 0), ga = games.reduce((s, g) => s + g.them, 0);
+  const { P, K } = seasonAgg(games);
+  const shots = P.reduce((s, p) => s + p.shots, 0), goals = P.reduce((s, p) => s + p.goals, 0);
+  const sv = K.reduce((s, k) => s + k.sv, 0), kga = K.reduce((s, k) => s + k.ga, 0);
+  const best = P.slice().sort((a, b) => b.goals - a.goals)[0];
+  const wrap = el('div', { cls: 'nums' });
+  const num = (lab, val, sub) => wrap.appendChild(el('div', { cls: 'n' },
+    el('div', { cls: 'lab', text: lab }), el('div', { cls: 'val', text: val }),
+    sub ? el('div', { cls: 'sub', text: sub }) : null));
+  num('Record', w + '–' + l + (t ? '–' + t : ''), games.length + (games.length === 1 ? ' game' : ' games'));
+  num('Goals for', String(gf), (gf / games.length).toFixed(1) + ' per game');
+  num('Goals against', String(ga), (ga / games.length).toFixed(1) + ' per game');
+  num('Shooting', shots ? (100 * goals / shots).toFixed(1) + '%' : '—', goals + ' of ' + shots + ' shots');
+  num('Save %', (sv + kga) ? (100 * sv / (sv + kga)).toFixed(1) + '%' : '—', sv + ' saves');
+  if (best && best.goals) num('Top scorer', String(best.goals), best.name);
+  host.appendChild(el('h2', { text: 'The season' }));
+  host.appendChild(wrap);
 }
 /* The match report sits under the intro: what happened last time out, written
    from the game's own numbers. */
@@ -1455,12 +1592,43 @@ function renderRecap() {
   const card = el('div', { cls: 'rc' },
     el('h2', { text: 'Last time out' }),
     el('div', { cls: 'rsub', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent
-      + (g.date ? ' · ' + g.date : '') + ' · ' + g.us + '–' + g.them }));
+      + (g.date ? ' · ' + (typeof fmtGameDate === 'function' ? fmtGameDate(g.date) : g.date) : '') + ' · ' + g.us + '–' + g.them }));
   for (const p of paras) card.appendChild(el('p', { text: p }));
   host.appendChild(card);
 }
+/* The ticker under the masthead: the season's highlights, newest result
+   first, then the record and the leaders. Every item is a fact from a game
+   record; with no games there is nothing to say and the strip stays hidden. */
+const TICKER_GAMES = 5;
+function renderTicker() {
+  const host = $('#home-ticker'); if (!host) return;
+  host.textContent = '';
+  let games = [];
+  try { games = allSeasonGames(); } catch (e) { games = []; }
+  if (!games.length || typeof seasonAgg !== 'function') { host.style.display = 'none'; return; }
+  const n = (v, w) => v + ' ' + w + (v === 1 ? '' : 's');
+  const items = [];
+  for (const g of games.slice().reverse().slice(0, TICKER_GAMES)) {
+    const when = g.date && typeof fmtGameDate === 'function' ? ' · ' + fmtGameDate(g.date) : '';
+    items.push('Air Force ' + g.us + '–' + g.them + ' ' + (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent + when);
+  }
+  const w = games.filter(g => g.result === 'W').length, l = games.filter(g => g.result === 'L').length,
+        t = games.filter(g => g.result === 'T').length;
+  items.push('Record ' + w + '–' + l + (t ? '–' + t : ''));
+  const { P, K } = seasonAgg(games);
+  const lead = (list, f) => list.slice().sort((a, b) => b[f] - a[f])[0];
+  const g1 = lead(P, 'goals'), a1 = lead(P, 'ast'), s1 = lead(K, 'sv');
+  if (g1 && g1.goals) items.push(g1.name + ' · ' + n(g1.goals, 'goal'));
+  if (a1 && a1.ast) items.push(a1.name + ' · ' + n(a1.ast, 'assist'));
+  if (s1 && s1.sv) items.push(s1.name + ' · ' + n(s1.sv, 'save'));
+  host.style.display = 'block';
+  const track = el('div', { cls: 'track' });
+  for (let pass = 0; pass < 2; pass++)            // two copies: the loop hands off seamlessly at -50%
+    for (const it of items) { track.appendChild(el('span', { text: it })); track.appendChild(el('span', { cls: 'sep', text: '—' })); }
+  host.appendChild(track);
+}
 function renderHome() {
-  renderStream(); renderRecap();
+  renderStream(); renderRecap(); renderHomeNumbers(); renderTicker();
   const r = $('#home-resume');
   if (game && !game.done) {
     const d = derive(game);
@@ -3805,7 +3973,7 @@ $('#btn-season-export').addEventListener('click', () => {
   $('#home-crest').src = LOGOS.airforce;
   $('#about-crest').src = LOGOS.airforce;
   if (LOGOS.teamphoto) $('#home-team-photo').src = LOGOS.teamphoto;
-  else $('#home-team-photo').style.display = 'none';
+  else ($('#home-team-photo').closest('.home-photo') || $('#home-team-photo')).style.display = 'none';
   $('#sb-us-logo').src = LOGOS.airforce;
   $('#g-date').value = new Date().toISOString().slice(0, 10);
   renderRoster(); renderSetupHint(); applyAdminUI(); renderGamePick();

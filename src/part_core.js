@@ -415,6 +415,7 @@ function showTab(name) {
     return;
   }
   $$('#menu button').forEach(x => x.classList.toggle('on', x.dataset.tab === name));
+  $$('.topnav button').forEach(x => x.classList.toggle('on', x.dataset.goto === name));
   $$('section.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + name));
   $('#menu').classList.remove('open');
   $('#menu-btn').setAttribute('aria-expanded', 'false');
@@ -462,7 +463,7 @@ function renderStream() {
       el('span', { cls: 'res', text: g.result || '—' }),
       el('span', { cls: 'meta' },
         el('span', { cls: 'opp', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent }),
-        el('span', { cls: 'sub', text: [g.date || 'date not recorded', g.comp].filter(Boolean).join(' · ') })),
+        el('span', { cls: 'sub', text: [g.date ? (typeof fmtGameDate === 'function' ? fmtGameDate(g.date) : g.date) : 'date not recorded', g.comp].filter(Boolean).join(' · ') })),
       el('span', { cls: 'score', text: g.us + '–' + g.them }),
       el('span', { cls: 'top', text: scorer === '—' ? '' : 'Top: ' + scorer }),
       el('span', { cls: 'chev', text: '▾', 'aria-hidden': 'true' }));
@@ -475,7 +476,37 @@ function fillSummary(host, g) {
   const paras = typeof gameRecap === 'function' ? gameRecap(g) : [];
   if (!paras.length) host.appendChild(el('p', { text: 'No match report could be written for this game.' }));
   for (const p of paras) host.appendChild(el('p', { text: p }));
-  host.appendChild(el('button', { cls: 'gsum-go', text: 'FULL SEASON STATS →', onclick: () => showTab('season') }));
+  host.appendChild(el('button', { cls: 'gsum-go', text: 'Full season stats →', onclick: () => showTab('season') }));
+}
+/* The season in numbers, under the report: the same games the stream shows,
+   reduced to the six figures a visitor asks for first. Hidden until there is
+   a game to count, like the stream. */
+function renderHomeNumbers() {
+  const host = $('#home-numbers'); if (!host) return;
+  host.textContent = '';
+  let games = [];
+  try { games = allSeasonGames(); } catch (e) { games = []; }
+  if (!games.length || typeof seasonAgg !== 'function') { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  const w = games.filter(g => g.result === 'W').length, l = games.filter(g => g.result === 'L').length,
+        t = games.filter(g => g.result === 'T').length;
+  const gf = games.reduce((s, g) => s + g.us, 0), ga = games.reduce((s, g) => s + g.them, 0);
+  const { P, K } = seasonAgg(games);
+  const shots = P.reduce((s, p) => s + p.shots, 0), goals = P.reduce((s, p) => s + p.goals, 0);
+  const sv = K.reduce((s, k) => s + k.sv, 0), kga = K.reduce((s, k) => s + k.ga, 0);
+  const best = P.slice().sort((a, b) => b.goals - a.goals)[0];
+  const wrap = el('div', { cls: 'nums' });
+  const num = (lab, val, sub) => wrap.appendChild(el('div', { cls: 'n' },
+    el('div', { cls: 'lab', text: lab }), el('div', { cls: 'val', text: val }),
+    sub ? el('div', { cls: 'sub', text: sub }) : null));
+  num('Record', w + '–' + l + (t ? '–' + t : ''), games.length + (games.length === 1 ? ' game' : ' games'));
+  num('Goals for', String(gf), (gf / games.length).toFixed(1) + ' per game');
+  num('Goals against', String(ga), (ga / games.length).toFixed(1) + ' per game');
+  num('Shooting', shots ? (100 * goals / shots).toFixed(1) + '%' : '—', goals + ' of ' + shots + ' shots');
+  num('Save %', (sv + kga) ? (100 * sv / (sv + kga)).toFixed(1) + '%' : '—', sv + ' saves');
+  if (best && best.goals) num('Top scorer', String(best.goals), best.name);
+  host.appendChild(el('h2', { text: 'The season' }));
+  host.appendChild(wrap);
 }
 /* The match report sits under the intro: what happened last time out, written
    from the game's own numbers. */
@@ -490,12 +521,43 @@ function renderRecap() {
   const card = el('div', { cls: 'rc' },
     el('h2', { text: 'Last time out' }),
     el('div', { cls: 'rsub', text: (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent
-      + (g.date ? ' · ' + g.date : '') + ' · ' + g.us + '–' + g.them }));
+      + (g.date ? ' · ' + (typeof fmtGameDate === 'function' ? fmtGameDate(g.date) : g.date) : '') + ' · ' + g.us + '–' + g.them }));
   for (const p of paras) card.appendChild(el('p', { text: p }));
   host.appendChild(card);
 }
+/* The ticker under the masthead: the season's highlights, newest result
+   first, then the record and the leaders. Every item is a fact from a game
+   record; with no games there is nothing to say and the strip stays hidden. */
+const TICKER_GAMES = 5;
+function renderTicker() {
+  const host = $('#home-ticker'); if (!host) return;
+  host.textContent = '';
+  let games = [];
+  try { games = allSeasonGames(); } catch (e) { games = []; }
+  if (!games.length || typeof seasonAgg !== 'function') { host.style.display = 'none'; return; }
+  const n = (v, w) => v + ' ' + w + (v === 1 ? '' : 's');
+  const items = [];
+  for (const g of games.slice().reverse().slice(0, TICKER_GAMES)) {
+    const when = g.date && typeof fmtGameDate === 'function' ? ' · ' + fmtGameDate(g.date) : '';
+    items.push('Air Force ' + g.us + '–' + g.them + ' ' + (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent + when);
+  }
+  const w = games.filter(g => g.result === 'W').length, l = games.filter(g => g.result === 'L').length,
+        t = games.filter(g => g.result === 'T').length;
+  items.push('Record ' + w + '–' + l + (t ? '–' + t : ''));
+  const { P, K } = seasonAgg(games);
+  const lead = (list, f) => list.slice().sort((a, b) => b[f] - a[f])[0];
+  const g1 = lead(P, 'goals'), a1 = lead(P, 'ast'), s1 = lead(K, 'sv');
+  if (g1 && g1.goals) items.push(g1.name + ' · ' + n(g1.goals, 'goal'));
+  if (a1 && a1.ast) items.push(a1.name + ' · ' + n(a1.ast, 'assist'));
+  if (s1 && s1.sv) items.push(s1.name + ' · ' + n(s1.sv, 'save'));
+  host.style.display = 'block';
+  const track = el('div', { cls: 'track' });
+  for (let pass = 0; pass < 2; pass++)            // two copies: the loop hands off seamlessly at -50%
+    for (const it of items) { track.appendChild(el('span', { text: it })); track.appendChild(el('span', { cls: 'sep', text: '—' })); }
+  host.appendChild(track);
+}
 function renderHome() {
-  renderStream(); renderRecap();
+  renderStream(); renderRecap(); renderHomeNumbers(); renderTicker();
   const r = $('#home-resume');
   if (game && !game.done) {
     const d = derive(game);
