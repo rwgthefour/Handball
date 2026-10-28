@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Site proposals — Air Force Team Handball</title>
+<style>
+:root{--ink:#101010;--mut:#5f5f5f;--line:#d9d9d4;--blue:#003594}
+body{margin:0;background:#fff;color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto;padding:56px 24px 72px}
+h1{margin:0 0 8px;font-size:40px;letter-spacing:-.03em;line-height:1.05}
+.lead{margin:0 0 40px;color:var(--mut);max-width:680px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+a.card{display:flex;flex-direction:column;gap:12px;padding:24px;border:1px solid var(--line);border-radius:8px;color:inherit;text-decoration:none;min-height:260px}
+a.card:hover{border-color:var(--ink)}
+.k{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.swatch{height:64px;border-radius:4px;display:flex;align-items:center;padding:0 16px;font-weight:700;letter-spacing:.02em}
+h2{margin:4px 0 0;font-size:22px;letter-spacing:-.02em}
+p{margin:0;color:var(--mut);font-size:15px}
+.cta{margin-top:auto;font-weight:600;color:var(--blue)}
+.note{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);color:var(--mut);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="k">USAFA Team Handball · usafateamhandball.com</div>
+  <h1>Three site directions</h1>
+  <p class="lead">Each page is a full landing-page proposal built from the real 2026 roster, portraits and game workbooks. Open one, scroll it at desktop and phone width, and use the switcher in the corner to compare.</p>
+  <div class="grid">
+    <a class="card" href="a-mission-control.html">
+      <div class="k">Direction A</div>
+      <div class="swatch" style="background:#0b0c0e;color:#f2f3f5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;letter-spacing:.16em;text-transform:uppercase">Mission Control</div>
+      <h2>Mission Control</h2>
+      <p>Palantir-style: near-black ground, hairline grid, monospace labels, light-weight display type, bracketed figures and a telemetry band. The season reads like an operations console.</p>
+      <span class="cta">Open proposal A →</span>
+    </a>
+    <a class="card" href="b-editorial.html">
+      <div class="k">Direction B</div>
+      <div class="swatch" style="background:#fff;border:1px solid #101010;color:#003594;font-family:Georgia,serif;font-style:italic;font-size:22px">Editorial</div>
+      <h2>Editorial</h2>
+      <p>Award-site style: white ground, oversized grotesk wordmark with a serif italic counterpoint, numbered chapters, marquee strip, case-study game cards and an editorial roster list.</p>
+      <span class="cta">Open proposal B →</span>
+    </a>
+    <a class="card" href="c-game-day.html">
+      <div class="k">Direction C</div>
+      <div class="swatch" style="background:#070c1f;color:#ffc72c;font-family:Impact,'Arial Narrow',sans-serif;font-size:22px;letter-spacing:.04em;text-transform:uppercase">Game Day</div>
+      <h2>Game Day</h2>
+      <p>Sports-site style: navy and gold, condensed display type with outlined numerals, diagonal cuts, a results ticker, floating scoreboard, season leaders carousel and a keeper's shot map.</p>
+      <span class="cta">Open proposal C →</span>
+    </a>
+  </div>
+  <div class="note">All three share the same content model as the live site (home, roster cards, season dashboard, match reports, Giving Tuesday, admin wall). Stats shown are the real season-to-date numbers from <code>games/*.xlsx</code>; the "Next up" fixture in C is a placeholder because no schedule data exists yet.</div>
+</div>
+</body>
+</html>
