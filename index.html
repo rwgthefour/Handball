@@ -160,6 +160,21 @@ header.app .ttl .l2{font-size:10.5px;letter-spacing:.14em;color:var(--ink-mut);t
 .home-numbers .n .lab{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut)}
 .home-numbers .n .val{font-weight:800;font-size:40px;letter-spacing:-.04em;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
 .home-numbers .n .sub{font-size:13px;color:var(--ink-mut);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* the roster preview: one editorial row per cadet, a door to the team page */
+.home-roster{margin-top:44px;display:none}
+.home-roster h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut);font-weight:600;margin:0;
+  padding-bottom:14px;border-bottom:1px solid var(--ink)}
+.home-roster .rrow{display:grid;grid-template-columns:36px 56px minmax(0,1fr) 120px 60px minmax(0,1fr) 110px;gap:18px;align-items:center;
+  width:100%;padding:12px 0;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.home-roster .rrow:hover{background:var(--paper)}
+.home-roster .rrow img,.home-roster .rrow .noph{width:56px;height:72px;object-fit:cover;border-radius:3px;background:var(--paper);display:block}
+.home-roster .rrow .num{font-weight:700;font-size:13px;letter-spacing:.06em;color:var(--ink-mut);font-variant-numeric:tabular-nums}
+.home-roster .rrow .nm{font-weight:600;font-size:18px;letter-spacing:-.015em;min-width:0}
+.home-roster .rrow .nm i{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--afa-blue);margin-left:8px;font-size:17px}
+.home-roster .rrow .pos,.home-roster .rrow .cls{font-size:14px}
+.home-roster .rrow .bio{font-size:13px;color:var(--ink-mut)}
+.home-roster .rrow .st{font-weight:700;font-size:13px;letter-spacing:.04em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.home-roster .more{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-top:20px}
 .about-wrap{max-width:760px;margin:0 auto;padding:0 16px 40px}
 .about-wrap img{width:72px;height:72px;object-fit:contain;margin-bottom:18px;display:block}
 .about-wrap p{color:var(--ink-2);font-size:17px;line-height:1.75;margin:0 0 18px}
@@ -432,13 +447,14 @@ table.stats th .arr{font-size:9px;opacity:.9}
 .dropzone.over{border-color:var(--afa-blue);background:#eef3fc}
 .chartgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:920px){.chartgrid{grid-template-columns:1fr}}
-.chartcard{background:var(--surface-1);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
-.chartcard h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:2px}
-.chartcard .sub{font-size:11.5px;color:var(--ink-mut);margin-bottom:8px}
-.legend{display:flex;gap:14px;font-size:11.5px;color:var(--ink-2);margin:2px 0 6px;flex-wrap:wrap}
-.legend .k{display:inline-flex;align-items:center;gap:5px}
-.legend .sw{width:12px;height:12px;border-radius:2px}
-.legend .ln{width:16px;height:2px}
+.chartcard{background:#fff;border:1px solid var(--line);border-radius:6px;padding:18px 20px 14px}
+.chartcard .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px 18px;flex-wrap:wrap;margin-bottom:12px}
+.chartcard h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:3px;font-weight:700}
+.chartcard .sub{font-size:12px;color:var(--ink-mut)}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--ink-2);margin:2px 0 0;flex-wrap:wrap}
+.legend .k{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:10px;height:10px;border-radius:2px}
+.legend .ln{width:18px;height:2px;border-radius:1px}
 .viz-tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--ink);border-radius:6px;
   box-shadow:0 2px 8px rgba(10,20,60,.18);padding:7px 10px;font-size:12px;z-index:99;display:none;min-width:110px}
 .viz-tip .t{font-weight:700;margin-bottom:3px}
@@ -481,6 +497,8 @@ svg text{font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
 @media (max-width:900px){
   .topnav{display:none}
   .give-pill{margin-left:auto}
+  .home-roster .rrow{grid-template-columns:36px 56px minmax(0,1fr) 110px 60px 100px}
+  .home-roster .rrow .bio{display:none}
 }
 @media (max-width:640px){
   header.app{padding:0 14px;gap:10px;height:64px}
@@ -509,6 +527,11 @@ svg text{font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
   .gcard .opp{font-size:18px}
   .gcard .score{font-size:28px}
   .gsum{padding:18px 16px 14px}
+  .home-roster .rrow{grid-template-columns:44px minmax(0,1fr) auto;gap:12px}
+  .home-roster .rrow img,.home-roster .rrow .noph{width:44px;height:56px}
+  .home-roster .rrow .num,.home-roster .rrow .pos,.home-roster .rrow .bio,.home-roster .rrow .cls{display:none}
+  .home-roster .rrow .nm{font-size:15px}
+  .home-roster .rrow .nm i{font-size:14px;margin-left:5px}
   .home-actions .act{border-right:0;margin-right:0;padding:22px 0;border-bottom:1px solid var(--line)}
   .home-actions .act:last-child{border-bottom:0}
   .pgrid{grid-template-columns:1fr}
@@ -595,11 +618,13 @@ svg text{font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
 
     <div class="home-recap" id="home-recap"></div>
 
-    <div class="home-numbers" id="home-numbers"></div>
-
     <figure class="home-photo">
       <img id="home-team-photo" alt="Air Force team handball team photo">
     </figure>
+
+    <div class="home-numbers" id="home-numbers"></div>
+
+    <div class="home-roster" id="home-roster"></div>
 
     <div class="home-actions">
       <button class="act" data-goto="game">
@@ -1627,8 +1652,43 @@ function renderTicker() {
     for (const it of items) { track.appendChild(el('span', { text: it })); track.appendChild(el('span', { cls: 'sep', text: '—' })); }
   host.appendChild(track);
 }
+/* The roster preview at the foot of the landing page: the captain, the CICs
+   and the first players, one row each with the season line their card
+   carries — a door to the team page, not a copy of it. */
+const HOME_ROSTER_ROWS = 8;
+function renderHomeRoster() {
+  const host = $('#home-roster'); if (!host) return;
+  host.textContent = '';
+  const cards = cardProfiles();
+  if (!cards.length) { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  const idx = teamStatsIndex();
+  const order = ['captain', 'cic', 'player'];
+  const list = cards.slice().sort((a, b) => order.indexOf(a.sec) - order.indexOf(b.sec)).slice(0, HOME_ROSTER_ROWS);
+  host.appendChild(el('h2', { text: 'Roster' }));
+  for (const c of list) {
+    const k = nameKey(c.name);
+    const rp = roster.find(p => nameKey(p.name) === k);
+    const sp = idx && idx.P.get(k), sk = idx && idx.K.get(k);
+    let line = '';
+    if (cardIsKeeper(c, sk) && sk && sk.faced) line = sk.sv + ' SV · ' + ((sk.sv + sk.ga) ? Math.round(100 * sk.sv / (sk.sv + sk.ga)) : 0) + '%';
+    else if (sp) line = sp.goals + ' G · ' + sp.ast + ' A';
+    const src = cardPhotoSrc(c);
+    host.appendChild(el('button', { cls: 'rrow', type: 'button', onclick: () => showTab('roster') },
+      el('span', { cls: 'num', text: rp && rp.num != null ? String(rp.num).padStart(2, '0') : '' }),
+      src ? el('img', { src, alt: '' }) : el('span', { cls: 'noph' }),
+      el('span', { cls: 'nm' }, c.name, c.role ? el('i', { text: c.role }) : null),
+      el('span', { cls: 'pos', text: c.pos || '' }),
+      el('span', { cls: 'cls', text: classYearFor(c.name) }),
+      el('span', { cls: 'bio', text: [c.home, c.major].filter(Boolean).join(' · ') }),
+      el('span', { cls: 'st', text: line || '—' })));
+  }
+  host.appendChild(el('div', { cls: 'more' },
+    el('span', { cls: 'muted', text: 'Showing ' + list.length + ' of ' + cards.length + ' cadets' }),
+    el('button', { cls: 'pill ghost', type: 'button', text: 'All cadets, card by card →', onclick: () => showTab('roster') })));
+}
 function renderHome() {
-  renderStream(); renderRecap(); renderHomeNumbers(); renderTicker();
+  renderStream(); renderRecap(); renderHomeNumbers(); renderTicker(); renderHomeRoster();
   const r = $('#home-resume');
   if (game && !game.done) {
     const d = derive(game);
@@ -1809,6 +1869,7 @@ function renderTeamCards() {
   sec('CIC', cards.filter(c => c.sec === 'cic'));
   sec('Players', cards.filter(c => c.sec === 'player'));
   renderTmList();
+  renderHomeRoster();     // the landing-page preview follows the cards
 }
 
 /* ---------- team card manager (admin) ---------- */
@@ -3316,15 +3377,20 @@ function allSeasonGames() {
 <script>
 'use strict';
 /* ================================================================
-   Charts — tiny SVG renderer.
-   Mark specs: bars ≤24px with a 4px rounded data-end (square at the
-   baseline), 2px gaps between touching bars, 2px lines with ≥8px
-   surface-ringed markers, solid hairline gridlines, muted axis text.
-   Tooltips enhance (tables below carry every value).
+   Charts — tiny SVG renderer, blue and grey.
+   Air Force wears the blue; the opponent and the second measure wear the
+   grey, the de-emphasis slot, so the eye lands on our side first and the
+   legend plus direct labels carry identity (blue↔grey clears the CVD,
+   normal-vision and 3:1 contrast checks on the white surface).
+   Marks are thin: columns ≤20px with a 4px rounded data-end, square at
+   the baseline, a 2px surface gap between neighbours; 2px lines with
+   ringed 9px markers; solid hairline gridlines; axis text in the page
+   font, muted. Values are labelled on the marks only while there is room
+   for them; tooltips enhance — the tables below carry every value.
    ================================================================ */
 const VIZ = {
-  s1: '#2a78d6', s2: '#eb6834', pos: '#2a78d6', neg: '#e34948',
-  grid: '#e1e0d9', axis: '#c3c2b7', ink2: '#52514e', mut: '#898781', surf: '#fcfcfb',
+  s1: '#1a4fb3', s2: '#8a8d8f', pos: '#1a4fb3', neg: '#8a8d8f',
+  grid: '#e8e8e4', axis: '#cfcfca', ink: '#101010', ink2: '#3f3f3c', mut: '#5f5f5f', surf: '#ffffff',
 };
 const tipEl = () => $('#viz-tip');
 function showTip(px, py, title, rows) {
@@ -3365,58 +3431,79 @@ function roundBotBar(x, y, w, h, r) {
     ' L' + (x + r) + ',' + (y + h) + ' Q' + x + ',' + (y + h) + ' ' + x + ',' + (y + h - r) + ' Z';
 }
 function baseSvg(W, H) {
-  return svgel('svg', { viewBox: '0 0 ' + W + ' ' + H, style: 'width:100%;display:block' });
+  return svgel('svg', { viewBox: '0 0 ' + W + ' ' + H, style: 'width:100%;display:block;overflow:visible' });
 }
-function axisLabels(svg, labels, xOf, H, pad) {
+/* one text node with the chart typography: {size, fill, weight, anchor} */
+function vtext(x, y, text, o) {
+  o = o || {};
+  return svgel('text', { x, y, 'font-size': o.size || 11, fill: o.fill || VIZ.mut, 'font-weight': o.weight || 400,
+    'text-anchor': o.anchor || 'start', text });
+}
+const trunc = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, Math.max(1, n - 1)) + '…' : s; };
+/* a slot's hit target: spans the column, tints on hover, carries the tooltip */
+function slotHit(svg, x, y, w, h, title, rows) {
+  const hit = svgel('rect', { x, y, width: w, height: h, fill: 'transparent', rx: 4 });
+  hit.addEventListener('pointerenter', () => hit.setAttribute('fill', 'rgba(16,16,16,.045)'));
+  hit.addEventListener('pointermove', ev => showTip(ev.clientX, ev.clientY, title, rows()));
+  hit.addEventListener('pointerleave', () => { hit.setAttribute('fill', 'transparent'); hideTip(); });
+  svg.appendChild(hit);
+}
+/* x labels are two lines — the opponent over the date — and thin out when
+   the slots get narrow so they never overlap */
+function axisLabels(svg, labels, xOf, H, pad, slot) {
   const step = Math.ceil(labels.length / 12);
+  const chars = Math.max(5, Math.floor((slot || 80) / 6.4));
   labels.forEach((lb, i) => {
     if (i % step) return;
-    svg.appendChild(svgel('text', { x: xOf(i), y: H - pad.b + 16, 'text-anchor': 'middle',
-      'font-size': 10.5, fill: VIZ.mut, text: lb }));
+    const a = typeof lb === 'object' ? lb.a : lb, b = typeof lb === 'object' ? lb.b : '';
+    svg.appendChild(vtext(xOf(i), H - pad.b + 16, trunc(a, chars), { size: 11, fill: VIZ.ink2, weight: 500, anchor: 'middle' }));
+    if (b) svg.appendChild(vtext(xOf(i), H - pad.b + 29, b, { size: 10, fill: VIZ.mut, anchor: 'middle' }));
   });
 }
 function gridY(svg, max, yOf, pad, W, fmt) {
-  const ticks = 4;
+  const ticks = Number.isInteger(max / 4) ? 4 : Number.isInteger(max / 5) ? 5 : 4;   // whole-number steps
   for (let i = 0; i <= ticks; i++) {
     const v = max * i / ticks, y = yOf(v);
     if (i > 0) svg.appendChild(svgel('line', { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: VIZ.grid, 'stroke-width': 1 }));
-    svg.appendChild(svgel('text', { x: pad.l - 6, y: y + 3.5, 'text-anchor': 'end', 'font-size': 10.5, fill: VIZ.mut, text: fmt ? fmt(v) : String(Math.round(v)) }));
+    svg.appendChild(vtext(pad.l - 8, y + 3.5, fmt ? fmt(v) : String(Math.round(v)), { size: 10.5, anchor: 'end' }));
   }
 }
 
-/* grouped bars: {labels, series:[{name,color,values}], fmt} */
+/* grouped columns: {labels, titles, series:[{name,color,values}], fmt} */
 function chartGroupedBars(host, cfg) {
-  const W = 560, H = 250, pad = { l: 34, r: 10, t: 12, b: 26 };
+  const W = 600, H = 280, pad = { l: 40, r: 16, t: 22, b: 42 };
   const svg = baseSvg(W, H);
   const max = niceMax(Math.max(1, ...cfg.series.flatMap(s => s.values)));
   const yOf = v => pad.t + (H - pad.t - pad.b) * (1 - v / max);
-  const slot = (W - pad.l - pad.r) / cfg.labels.length;
-  const bw = Math.max(3, Math.min(24, (slot - 8) / cfg.series.length - 2));
-  gridY(svg, max, yOf, pad, W);
+  const n = cfg.labels.length, ns = cfg.series.length;
+  const slot = (W - pad.l - pad.r) / n;
+  const bw = Math.max(3, Math.min(20, (slot * .62) / ns - 2));
+  const labelled = slot / ns >= 34;          // room for a value on every cap
+  gridY(svg, max, yOf, pad, W, cfg.fmt);
   svg.appendChild(svgel('line', { x1: pad.l, y1: yOf(0), x2: W - pad.r, y2: yOf(0), stroke: VIZ.axis, 'stroke-width': 1 }));
   cfg.labels.forEach((lb, i) => {
     const cx = pad.l + slot * (i + .5);
-    const totalW = cfg.series.length * bw + (cfg.series.length - 1) * 2;
+    const totalW = ns * bw + (ns - 1) * 2;
+    const title = cfg.titles ? cfg.titles[i] : (typeof lb === 'object' ? lb.a : lb);
+    slotHit(svg, pad.l + slot * i + 2, pad.t, slot - 4, H - pad.t - pad.b, title,
+      () => cfg.series.map(s => ({ name: s.name, color: s.color, value: cfg.fmt ? cfg.fmt(s.values[i] || 0) : String(s.values[i] || 0) })));
     cfg.series.forEach((s, si) => {
       const v = s.values[i] || 0;
       const x = cx - totalW / 2 + si * (bw + 2);
-      const p = svgel('path', { d: roundTopBar(x, yOf(v), bw, yOf(0) - yOf(v), 4), fill: s.color });
-      svg.appendChild(p);
+      svg.appendChild(svgel('path', { d: roundTopBar(x, yOf(v), bw, yOf(0) - yOf(v), 4), fill: s.color, 'pointer-events': 'none' }));
+      if (labelled && v) svg.appendChild(vtext(x + bw / 2, yOf(v) - 6, cfg.fmt ? cfg.fmt(v) : String(v),
+        { size: 10.5, fill: VIZ.ink2, weight: 600, anchor: 'middle' }));
     });
-    // hit target spans the slot
-    const hit = svgel('rect', { x: pad.l + slot * i, y: pad.t, width: slot, height: H - pad.t - pad.b, fill: 'transparent' });
-    hit.addEventListener('pointermove', ev => showTip(ev.clientX, ev.clientY, cfg.titles ? cfg.titles[i] : lb,
-      cfg.series.map(s => ({ name: s.name, color: s.color, value: cfg.fmt ? cfg.fmt(s.values[i] || 0) : String(s.values[i] || 0) }))));
-    hit.addEventListener('pointerleave', hideTip);
-    svg.appendChild(hit);
   });
-  axisLabels(svg, cfg.labels, i => pad.l + slot * (i + .5), H, pad);
+  axisLabels(svg, cfg.labels, i => pad.l + slot * (i + .5), H, pad, slot);
   host.appendChild(svg);
 }
 
-/* lines: {labels, series:[{name,color,values(null ok)}], fmt, max?} */
+/* lines: {labels, titles, series:[{name,color,values(null ok)}], fmt, max?}
+   The first series gets a light wash under its line; every point carries a
+   ringed marker; the last point of each series is labelled directly. */
 function chartLines(host, cfg) {
-  const W = 560, H = 250, pad = { l: 40, r: 46, t: 12, b: 26 };
+  const W = 600, H = 280, pad = { l: 44, r: 58, t: 22, b: 42 };
   const svg = baseSvg(W, H);
   const max = cfg.max || niceMax(Math.max(1, ...cfg.series.flatMap(s => s.values.filter(v => v != null))));
   const yOf = v => pad.t + (H - pad.t - pad.b) * (1 - v / max);
@@ -3426,25 +3513,31 @@ function chartLines(host, cfg) {
   svg.appendChild(svgel('line', { x1: pad.l, y1: yOf(0), x2: W - pad.r, y2: yOf(0), stroke: VIZ.axis, 'stroke-width': 1 }));
   const cross = svgel('line', { x1: 0, y1: pad.t, x2: 0, y2: H - pad.b, stroke: VIZ.axis, 'stroke-width': 1, opacity: 0 });
   svg.appendChild(cross);
-  for (const s of cfg.series) {
-    let dPath = '', started = false;
+  const ends = [];
+  cfg.series.forEach((s, si) => {
+    let dPath = '', started = false, first = null, last = null;
     s.values.forEach((v, i) => {
       if (v == null) { started = false; return; }
       dPath += (started ? ' L' : ' M') + xOf(i) + ',' + yOf(v); started = true;
+      if (first == null) first = i; last = i;
     });
-    if (dPath) svg.appendChild(svgel('path', { d: dPath, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    if (!dPath) return;
+    if (si === 0 && first != null && last > first && s.values.slice(first, last + 1).every(v => v != null)) {
+      const wash = dPath + ' L' + xOf(last) + ',' + yOf(0) + ' L' + xOf(first) + ',' + yOf(0) + ' Z';
+      svg.appendChild(svgel('path', { d: wash, fill: s.color, opacity: .08, 'pointer-events': 'none' }));
+    }
+    svg.appendChild(svgel('path', { d: dPath, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'pointer-events': 'none' }));
     s.values.forEach((v, i) => {
       if (v == null) return;
-      svg.appendChild(svgel('circle', { cx: xOf(i), cy: yOf(v), r: 4, fill: s.color, stroke: VIZ.surf, 'stroke-width': 2 }));
+      svg.appendChild(svgel('circle', { cx: xOf(i), cy: yOf(v), r: 4.5, fill: s.color, stroke: VIZ.surf, 'stroke-width': 2, 'pointer-events': 'none' }));
     });
-    // endpoint direct label
-    for (let i = s.values.length - 1; i >= 0; i--) if (s.values[i] != null) {
-      svg.appendChild(svgel('text', { x: xOf(i) + 8, y: yOf(s.values[i]) + 3.5, 'font-size': 10.5, 'font-weight': 700, fill: VIZ.ink2,
-        text: cfg.fmt ? cfg.fmt(s.values[i]) : String(s.values[i]) }));
-      break;
-    }
-  }
-  axisLabels(svg, cfg.labels, xOf, H, pad);
+    ends.push({ x: xOf(last) + 9, y: yOf(s.values[last]) + 3.5, text: cfg.fmt ? cfg.fmt(s.values[last]) : String(s.values[last]) });
+  });
+  // endpoint labels: nudge apart when two land on the same spot
+  ends.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
+  for (const e of ends) svg.appendChild(vtext(e.x, e.y, e.text, { size: 11, fill: VIZ.ink2, weight: 700 }));
+  axisLabels(svg, cfg.labels, xOf, H, pad, n > 1 ? (W - pad.l - pad.r) / (n - 1) : 200);
   const hit = svgel('rect', { x: pad.l, y: pad.t, width: W - pad.l - pad.r, height: H - pad.t - pad.b, fill: 'transparent' });
   hit.addEventListener('pointermove', ev => {
     const r = svg.getBoundingClientRect();
@@ -3452,7 +3545,8 @@ function chartLines(host, cfg) {
     let best = 0, bd = 1e9;
     for (let i = 0; i < n; i++) { const dd = Math.abs(xOf(i) - mx); if (dd < bd) { bd = dd; best = i; } }
     cross.setAttribute('x1', xOf(best)); cross.setAttribute('x2', xOf(best)); cross.setAttribute('opacity', 1);
-    showTip(ev.clientX, ev.clientY, cfg.titles ? cfg.titles[best] : cfg.labels[best],
+    const lb = cfg.labels[best];
+    showTip(ev.clientX, ev.clientY, cfg.titles ? cfg.titles[best] : (typeof lb === 'object' ? lb.a : lb),
       cfg.series.filter(s => s.values[best] != null).map(s => ({ name: s.name, color: s.color, value: cfg.fmt ? cfg.fmt(s.values[best]) : String(s.values[best]) })));
   });
   hit.addEventListener('pointerleave', () => { cross.setAttribute('opacity', 0); hideTip(); });
@@ -3460,80 +3554,83 @@ function chartLines(host, cfg) {
   host.appendChild(svg);
 }
 
-/* horizontal bars: {items:[{label,value,sub}], fmt} — one series, value at tip */
+/* horizontal bars: {items:[{label,value,sub}], name, fmt} — one series, the
+   value at the tip with the sub-note in muted text beside it; the label
+   column is sized to the longest name so nothing is cut short */
 function chartHBar(host, cfg) {
-  const rowH = 26, W = 560, pad = { l: 118, r: 54, t: 6, b: 6 };
+  const rowH = 28, bar = 16, W = 600;
+  const longest = Math.max(6, ...cfg.items.map(i => String(i.label).length));
+  const pad = { l: Math.min(210, Math.round(longest * 6.6) + 14), r: 86, t: 8, b: 8 };
   const H = pad.t + pad.b + cfg.items.length * rowH;
   const svg = baseSvg(W, H);
   const max = niceMax(Math.max(1, ...cfg.items.map(i => i.value)));
   const wOf = v => (W - pad.l - pad.r) * v / max;
   svg.appendChild(svgel('line', { x1: pad.l, y1: pad.t, x2: pad.l, y2: H - pad.b, stroke: VIZ.axis, 'stroke-width': 1 }));
   cfg.items.forEach((it, i) => {
-    const y = pad.t + i * rowH + (rowH - 18) / 2;
+    const y = pad.t + i * rowH + (rowH - bar) / 2;
+    const w = wOf(it.value), r = 4;
     // rounded data-end on the right, square at the baseline
-    const w = wOf(it.value);
-    const r = 4;
     const dd = 'M' + pad.l + ',' + y + ' L' + (pad.l + Math.max(0, w - r)) + ',' + y +
-      ' Q' + (pad.l + w) + ',' + y + ' ' + (pad.l + w) + ',' + (y + Math.min(r, 9)) +
-      ' L' + (pad.l + w) + ',' + (y + 18 - r) + ' Q' + (pad.l + w) + ',' + (y + 18) + ' ' + (pad.l + Math.max(0, w - r)) + ',' + (y + 18) +
-      ' L' + pad.l + ',' + (y + 18) + ' Z';
-    const p = svgel('path', { d: dd, fill: VIZ.s1 });
-    svg.appendChild(p);
-    const nm = svgel('text', { x: pad.l - 8, y: y + 13, 'text-anchor': 'end', 'font-size': 11.5, fill: VIZ.ink2, text: it.label });
-    svg.appendChild(nm);
-    svg.appendChild(svgel('text', { x: pad.l + w + 6, y: y + 13, 'font-size': 11.5, 'font-weight': 700, fill: VIZ.ink2,
-      text: cfg.fmt ? cfg.fmt(it.value) : String(it.value) }));
-    const hit = svgel('rect', { x: 0, y: pad.t + i * rowH, width: W, height: rowH, fill: 'transparent' });
-    hit.addEventListener('pointermove', ev => showTip(ev.clientX, ev.clientY, it.label,
-      [{ name: cfg.name || '', color: VIZ.s1, value: (cfg.fmt ? cfg.fmt(it.value) : String(it.value)) + (it.sub ? ' · ' + it.sub : '') }]));
-    hit.addEventListener('pointerleave', hideTip);
-    svg.appendChild(hit);
+      ' Q' + (pad.l + w) + ',' + y + ' ' + (pad.l + w) + ',' + (y + Math.min(r, bar / 2)) +
+      ' L' + (pad.l + w) + ',' + (y + bar - r) + ' Q' + (pad.l + w) + ',' + (y + bar) + ' ' + (pad.l + Math.max(0, w - r)) + ',' + (y + bar) +
+      ' L' + pad.l + ',' + (y + bar) + ' Z';
+    slotHit(svg, 0, pad.t + i * rowH, W, rowH, it.label,
+      () => [{ name: cfg.name || '', color: VIZ.s1, value: (cfg.fmt ? cfg.fmt(it.value) : String(it.value)) + (it.sub ? ' · ' + it.sub : '') }]);
+    if (w > 0) svg.appendChild(svgel('path', { d: dd, fill: VIZ.s1, 'pointer-events': 'none' }));
+    svg.appendChild(vtext(pad.l - 10, y + bar / 2 + 4, it.label, { size: 12, fill: VIZ.ink2, weight: 500, anchor: 'end' }));
+    const val = vtext(pad.l + w + 8, y + bar / 2 + 4, cfg.fmt ? cfg.fmt(it.value) : String(it.value), { size: 12, fill: VIZ.ink, weight: 700 });
+    if (it.sub) val.appendChild(svgel('tspan', { 'font-weight': 400, fill: VIZ.mut, 'font-size': 11, text: '  ' + it.sub }));
+    svg.appendChild(val);
   });
   host.appendChild(svg);
 }
 
-/* diverging bars around 0: {labels, values, titles} */
+/* diverging columns around 0: {labels, titles, values} — blue above the
+   line (won by), grey below it (lost by), the margin on each cap */
 function chartDivBar(host, cfg) {
-  const W = 560, H = 250, pad = { l: 34, r: 10, t: 12, b: 26 };
+  const W = 600, H = 280, pad = { l: 40, r: 16, t: 22, b: 42 };
   const svg = baseSvg(W, H);
   const ext = niceMax(Math.max(1, ...cfg.values.map(v => Math.abs(v))));
   const yOf = v => pad.t + (H - pad.t - pad.b) * (1 - (v + ext) / (2 * ext));
-  const slot = (W - pad.l - pad.r) / cfg.labels.length;
-  const bw = Math.max(3, Math.min(24, slot - 8));
+  const n = cfg.labels.length;
+  const slot = (W - pad.l - pad.r) / n;
+  const bw = Math.max(3, Math.min(20, slot * .5));
+  const labelled = slot >= 34;
+  const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v);
   [ext, ext / 2, 0, -ext / 2, -ext].forEach(v => {
     const y = yOf(v);
     if (v !== 0) svg.appendChild(svgel('line', { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: VIZ.grid, 'stroke-width': 1 }));
-    svg.appendChild(svgel('text', { x: pad.l - 6, y: y + 3.5, 'text-anchor': 'end', 'font-size': 10.5, fill: VIZ.mut, text: (v > 0 ? '+' : '') + v }));
+    svg.appendChild(vtext(pad.l - 8, y + 3.5, signed(v), { size: 10.5, anchor: 'end' }));
   });
-  svg.appendChild(svgel('line', { x1: pad.l, y1: yOf(0), x2: W - pad.r, y2: yOf(0), stroke: VIZ.axis, 'stroke-width': 1.5 }));
+  svg.appendChild(svgel('line', { x1: pad.l, y1: yOf(0), x2: W - pad.r, y2: yOf(0), stroke: VIZ.ink, 'stroke-width': 1 }));
   cfg.labels.forEach((lb, i) => {
     const v = cfg.values[i] || 0;
     const x = pad.l + slot * (i + .5) - bw / 2;
-    let p;
-    if (v >= 0) p = svgel('path', { d: roundTopBar(x, yOf(v), bw, Math.max(0.0001, yOf(0) - yOf(v)), 4), fill: VIZ.pos });
-    else p = svgel('path', { d: roundBotBar(x, yOf(0), bw, yOf(v) - yOf(0), 4), fill: VIZ.neg });
-    svg.appendChild(p);
-    const hit = svgel('rect', { x: pad.l + slot * i, y: pad.t, width: slot, height: H - pad.t - pad.b, fill: 'transparent' });
-    hit.addEventListener('pointermove', ev => showTip(ev.clientX, ev.clientY, cfg.titles ? cfg.titles[i] : lb,
-      [{ name: v >= 0 ? 'Won by' : 'Lost by', color: v >= 0 ? VIZ.pos : VIZ.neg, value: (v > 0 ? '+' : '') + v }]));
-    hit.addEventListener('pointerleave', hideTip);
-    svg.appendChild(hit);
+    const title = cfg.titles ? cfg.titles[i] : (typeof lb === 'object' ? lb.a : lb);
+    slotHit(svg, pad.l + slot * i + 2, pad.t, slot - 4, H - pad.t - pad.b, title,
+      () => [{ name: v > 0 ? 'Won by' : v < 0 ? 'Lost by' : 'Drawn', color: v >= 0 ? VIZ.pos : VIZ.neg, value: signed(v) }]);
+    if (v >= 0) svg.appendChild(svgel('path', { d: roundTopBar(x, yOf(v), bw, Math.max(0.0001, yOf(0) - yOf(v)), 4), fill: VIZ.pos, 'pointer-events': 'none' }));
+    else svg.appendChild(svgel('path', { d: roundBotBar(x, yOf(0), bw, yOf(v) - yOf(0), 4), fill: VIZ.neg, 'pointer-events': 'none' }));
+    if (labelled && v) svg.appendChild(vtext(x + bw / 2, v > 0 ? yOf(v) - 6 : yOf(v) + 14, signed(v),
+      { size: 10.5, fill: VIZ.ink2, weight: 600, anchor: 'middle' }));
   });
-  axisLabels(svg, cfg.labels, i => pad.l + slot * (i + .5), H, pad);
+  axisLabels(svg, cfg.labels, i => pad.l + slot * (i + .5), H, pad, slot);
   host.appendChild(svg);
 }
 
+/* the card: title and note on the left, the legend on the right */
 function chartCard(title, sub, legend) {
   const c = el('div', { cls: 'chartcard' });
-  c.appendChild(el('h3', { text: title }));
-  if (sub) c.appendChild(el('div', { cls: 'sub', text: sub }));
+  const head = el('div', { cls: 'chead' },
+    el('div', {}, el('h3', { text: title }), sub ? el('div', { cls: 'sub', text: sub }) : null));
   if (legend && legend.length > 1) {
     const lg = el('div', { cls: 'legend' });
     for (const it of legend) lg.appendChild(el('span', { cls: 'k' },
       el('span', { cls: it.line ? 'ln' : 'sw', style: 'background:' + it.color }),
       el('span', { text: it.name })));
-    c.appendChild(lg);
+    head.appendChild(lg);
   }
+  c.appendChild(head);
   return c;
 }
 
@@ -3626,22 +3723,30 @@ function renderTiles(games) {
   tile('7m conversion', a7 ? (100 * m7 / a7).toFixed(0) + '%' : '—', m7 + ' of ' + a7);
 }
 
-function gLabel(g) { return (g.opponent || '?').slice(0, 9); }
-function gTitle(g) { return 'vs ' + g.opponent + (g.date ? ' · ' + g.date : '') + (g.est ? ' (imported)' : ''); }
-
+/* a game's two-line axis label (opponent over the date) and its tooltip title */
+const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function gShortDate(d) {
+  const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? (+m[3]) + ' ' + MON3[+m[2] - 1] : '';
+}
+function gLabel(g) { return { a: g.opponent || '?', b: gShortDate(g.date) }; }
+function gTitle(g) {
+  return (g.ha === 'Away' ? 'at ' : 'vs ') + g.opponent + (g.date ? ' · ' + fmtGameDate(g.date) : '') + (g.est ? ' (imported)' : '');
+}
+const cadetName = s => String(s || '').replace(/^C[1-4]C\s+/i, '');
 function renderCharts(games) {
   const host = $('#charts'); host.textContent = '';
   if (!games.length) return;
   const labels = games.map(gLabel), titles = games.map(gTitle);
   // 1 — goals for / against
-  const c1 = chartCard('Goals for vs against', 'per game',
+  const c1 = chartCard('Goals for and against', 'per game',
     [{ name: 'Air Force', color: VIZ.s1 }, { name: 'Opponent', color: VIZ.s2 }]);
   chartGroupedBars(c1, { labels, titles, series: [
     { name: 'Air Force', color: VIZ.s1, values: games.map(g => g.us) },
     { name: 'Opponent', color: VIZ.s2, values: games.map(g => g.them) }] });
   host.appendChild(c1);
   // 2 — margin
-  const c2 = chartCard('Margin of victory', 'goal differential per game', []);
+  const c2 = chartCard('Margin', 'goal difference per game — blue won, grey lost', []);
   chartDivBar(c2, { labels, titles, values: games.map(g => g.us - g.them) });
   host.appendChild(c2);
   // 3 — shooting % + save %
@@ -3653,7 +3758,7 @@ function renderCharts(games) {
     const sv = g.keepers.reduce((a, k) => a + k.sv, 0), ga = g.keepers.reduce((a, k) => a + k.ga, 0);
     return (sv + ga) ? +(100 * sv / (sv + ga)).toFixed(1) : null;
   });
-  const c3 = chartCard('Shooting % and save %', 'team, per game',
+  const c3 = chartCard('Shooting and saves', 'team shooting % and save %, per game',
     [{ name: 'Shooting %', color: VIZ.s1, line: 1 }, { name: 'Save %', color: VIZ.s2, line: 1 }]);
   chartLines(c3, { labels, titles, max: 100, fmt: v => v.toFixed(0) + '%', series: [
     { name: 'Shooting %', color: VIZ.s1, values: shootPct },
@@ -3661,10 +3766,11 @@ function renderCharts(games) {
   host.appendChild(c3);
   // 4 — top scorers
   const { P } = seasonAgg(games);
-  const top = P.slice().sort((a, b) => b.goals - a.goals).slice(0, 10)
-    .map(p => ({ label: p.name.slice(0, 14), value: p.goals, sub: p.gp + ' GP' }));
-  const c4 = chartCard('Top scorers', 'season goals (top 10)', []);
+  const top = P.slice().sort((a, b) => b.goals - a.goals).filter(p => p.goals > 0).slice(0, 10)
+    .map(p => ({ label: cadetName(p.name), value: p.goals, sub: p.gp + ' GP' }));
+  const c4 = chartCard('Top scorers', 'season goals, up to ten', []);
   if (top.length) chartHBar(c4, { items: top, name: 'Goals' });
+  else c4.appendChild(el('div', { cls: 'sub', text: 'No goals recorded yet.' }));
   host.appendChild(c4);
 }
 

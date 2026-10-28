@@ -556,8 +556,43 @@ function renderTicker() {
     for (const it of items) { track.appendChild(el('span', { text: it })); track.appendChild(el('span', { cls: 'sep', text: '—' })); }
   host.appendChild(track);
 }
+/* The roster preview at the foot of the landing page: the captain, the CICs
+   and the first players, one row each with the season line their card
+   carries — a door to the team page, not a copy of it. */
+const HOME_ROSTER_ROWS = 8;
+function renderHomeRoster() {
+  const host = $('#home-roster'); if (!host) return;
+  host.textContent = '';
+  const cards = cardProfiles();
+  if (!cards.length) { host.style.display = 'none'; return; }
+  host.style.display = 'block';
+  const idx = teamStatsIndex();
+  const order = ['captain', 'cic', 'player'];
+  const list = cards.slice().sort((a, b) => order.indexOf(a.sec) - order.indexOf(b.sec)).slice(0, HOME_ROSTER_ROWS);
+  host.appendChild(el('h2', { text: 'Roster' }));
+  for (const c of list) {
+    const k = nameKey(c.name);
+    const rp = roster.find(p => nameKey(p.name) === k);
+    const sp = idx && idx.P.get(k), sk = idx && idx.K.get(k);
+    let line = '';
+    if (cardIsKeeper(c, sk) && sk && sk.faced) line = sk.sv + ' SV · ' + ((sk.sv + sk.ga) ? Math.round(100 * sk.sv / (sk.sv + sk.ga)) : 0) + '%';
+    else if (sp) line = sp.goals + ' G · ' + sp.ast + ' A';
+    const src = cardPhotoSrc(c);
+    host.appendChild(el('button', { cls: 'rrow', type: 'button', onclick: () => showTab('roster') },
+      el('span', { cls: 'num', text: rp && rp.num != null ? String(rp.num).padStart(2, '0') : '' }),
+      src ? el('img', { src, alt: '' }) : el('span', { cls: 'noph' }),
+      el('span', { cls: 'nm' }, c.name, c.role ? el('i', { text: c.role }) : null),
+      el('span', { cls: 'pos', text: c.pos || '' }),
+      el('span', { cls: 'cls', text: classYearFor(c.name) }),
+      el('span', { cls: 'bio', text: [c.home, c.major].filter(Boolean).join(' · ') }),
+      el('span', { cls: 'st', text: line || '—' })));
+  }
+  host.appendChild(el('div', { cls: 'more' },
+    el('span', { cls: 'muted', text: 'Showing ' + list.length + ' of ' + cards.length + ' cadets' }),
+    el('button', { cls: 'pill ghost', type: 'button', text: 'All cadets, card by card →', onclick: () => showTab('roster') })));
+}
 function renderHome() {
-  renderStream(); renderRecap(); renderHomeNumbers(); renderTicker();
+  renderStream(); renderRecap(); renderHomeNumbers(); renderTicker(); renderHomeRoster();
   const r = $('#home-resume');
   if (game && !game.done) {
     const d = derive(game);
@@ -738,6 +773,7 @@ function renderTeamCards() {
   sec('CIC', cards.filter(c => c.sec === 'cic'));
   sec('Players', cards.filter(c => c.sec === 'player'));
   renderTmList();
+  renderHomeRoster();     // the landing-page preview follows the cards
 }
 
 /* ---------- team card manager (admin) ---------- */

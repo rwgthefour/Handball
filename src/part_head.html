@@ -160,6 +160,21 @@ header.app .ttl .l2{font-size:10.5px;letter-spacing:.14em;color:var(--ink-mut);t
 .home-numbers .n .lab{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut)}
 .home-numbers .n .val{font-weight:800;font-size:40px;letter-spacing:-.04em;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
 .home-numbers .n .sub{font-size:13px;color:var(--ink-mut);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* the roster preview: one editorial row per cadet, a door to the team page */
+.home-roster{margin-top:44px;display:none}
+.home-roster h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mut);font-weight:600;margin:0;
+  padding-bottom:14px;border-bottom:1px solid var(--ink)}
+.home-roster .rrow{display:grid;grid-template-columns:36px 56px minmax(0,1fr) 120px 60px minmax(0,1fr) 110px;gap:18px;align-items:center;
+  width:100%;padding:12px 0;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.home-roster .rrow:hover{background:var(--paper)}
+.home-roster .rrow img,.home-roster .rrow .noph{width:56px;height:72px;object-fit:cover;border-radius:3px;background:var(--paper);display:block}
+.home-roster .rrow .num{font-weight:700;font-size:13px;letter-spacing:.06em;color:var(--ink-mut);font-variant-numeric:tabular-nums}
+.home-roster .rrow .nm{font-weight:600;font-size:18px;letter-spacing:-.015em;min-width:0}
+.home-roster .rrow .nm i{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--afa-blue);margin-left:8px;font-size:17px}
+.home-roster .rrow .pos,.home-roster .rrow .cls{font-size:14px}
+.home-roster .rrow .bio{font-size:13px;color:var(--ink-mut)}
+.home-roster .rrow .st{font-weight:700;font-size:13px;letter-spacing:.04em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.home-roster .more{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-top:20px}
 .about-wrap{max-width:760px;margin:0 auto;padding:0 16px 40px}
 .about-wrap img{width:72px;height:72px;object-fit:contain;margin-bottom:18px;display:block}
 .about-wrap p{color:var(--ink-2);font-size:17px;line-height:1.75;margin:0 0 18px}
@@ -432,13 +447,14 @@ table.stats th .arr{font-size:9px;opacity:.9}
 .dropzone.over{border-color:var(--afa-blue);background:#eef3fc}
 .chartgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:920px){.chartgrid{grid-template-columns:1fr}}
-.chartcard{background:var(--surface-1);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
-.chartcard h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:2px}
-.chartcard .sub{font-size:11.5px;color:var(--ink-mut);margin-bottom:8px}
-.legend{display:flex;gap:14px;font-size:11.5px;color:var(--ink-2);margin:2px 0 6px;flex-wrap:wrap}
-.legend .k{display:inline-flex;align-items:center;gap:5px}
-.legend .sw{width:12px;height:12px;border-radius:2px}
-.legend .ln{width:16px;height:2px}
+.chartcard{background:#fff;border:1px solid var(--line);border-radius:6px;padding:18px 20px 14px}
+.chartcard .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px 18px;flex-wrap:wrap;margin-bottom:12px}
+.chartcard h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:3px;font-weight:700}
+.chartcard .sub{font-size:12px;color:var(--ink-mut)}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--ink-2);margin:2px 0 0;flex-wrap:wrap}
+.legend .k{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:10px;height:10px;border-radius:2px}
+.legend .ln{width:18px;height:2px;border-radius:1px}
 .viz-tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--ink);border-radius:6px;
   box-shadow:0 2px 8px rgba(10,20,60,.18);padding:7px 10px;font-size:12px;z-index:99;display:none;min-width:110px}
 .viz-tip .t{font-weight:700;margin-bottom:3px}
@@ -481,6 +497,8 @@ svg text{font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
 @media (max-width:900px){
   .topnav{display:none}
   .give-pill{margin-left:auto}
+  .home-roster .rrow{grid-template-columns:36px 56px minmax(0,1fr) 110px 60px 100px}
+  .home-roster .rrow .bio{display:none}
 }
 @media (max-width:640px){
   header.app{padding:0 14px;gap:10px;height:64px}
@@ -509,6 +527,11 @@ svg text{font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
   .gcard .opp{font-size:18px}
   .gcard .score{font-size:28px}
   .gsum{padding:18px 16px 14px}
+  .home-roster .rrow{grid-template-columns:44px minmax(0,1fr) auto;gap:12px}
+  .home-roster .rrow img,.home-roster .rrow .noph{width:44px;height:56px}
+  .home-roster .rrow .num,.home-roster .rrow .pos,.home-roster .rrow .bio,.home-roster .rrow .cls{display:none}
+  .home-roster .rrow .nm{font-size:15px}
+  .home-roster .rrow .nm i{font-size:14px;margin-left:5px}
   .home-actions .act{border-right:0;margin-right:0;padding:22px 0;border-bottom:1px solid var(--line)}
   .home-actions .act:last-child{border-bottom:0}
   .pgrid{grid-template-columns:1fr}
@@ -595,11 +618,13 @@ svg text{font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif}
 
     <div class="home-recap" id="home-recap"></div>
 
-    <div class="home-numbers" id="home-numbers"></div>
-
     <figure class="home-photo">
       <img id="home-team-photo" alt="Air Force team handball team photo">
     </figure>
+
+    <div class="home-numbers" id="home-numbers"></div>
+
+    <div class="home-roster" id="home-roster"></div>
 
     <div class="home-actions">
       <button class="act" data-goto="game">
