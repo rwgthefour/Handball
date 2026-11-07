@@ -3895,7 +3895,8 @@ function gameRecap(g) {
     if (K.length > 1) c.push(joinList(K.slice(1).map(x => x.name + ' faced ' + plural(x.faced, 'shot')
       + ' and saved ' + x.sv)) + ' in his turn between the posts.');
     const en = K.reduce((s, x) => s + (x.en || 0), 0);
-    if (en) c.push('With the keeper pulled late, ' + plural(en, 'goal') + ' went into an empty net.');
+    // no "late": a saved game carries no time for its empty-net goals (Army's came in the first half)
+    if (en) c.push('With the keeper pulled, ' + plural(en, 'goal') + ' went into an empty net.');
   }
   const def = [];
   if (stls) def.push(plural(stls, 'steal'));

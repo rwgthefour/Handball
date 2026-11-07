@@ -665,6 +665,13 @@ const pidOf = num => _probePage.evaluate(n => {
   ok('a blowout report says when it was last level and names the run that broke it open',
     /at 4–4 in the first half/.test(blow.p1) && /pulled away, with a 6–0 run in the first half that took the score from 4–4 to 4–10/.test(blow.p1)
       && !/not in doubt/.test(blow.p1) && /final margin was/.test(blow.p1), blow.score + ' :: ' + blow.p1);
+  /* Army's empty-net goal (6 Nov) came 9 minutes before half-time, while the
+     keeper was up for an assist — the report must not say the keeper was pulled "late". */
+  const enP3 = await page.evaluate(() => gameRecap({ opponent: 'Empty Net U', ha: 'Away', comp: 'Exhibition',
+    date: '2026-11-06', result: 'L', us: 30, them: 33, ht: '15-15', flow: null, players: [],
+    keepers: [{ name: 'C2C Test Keeper', faced: 62, sv: 21, ga: 32, savew: 0, en: 1 }] })[2]);
+  ok('an empty-net goal is reported without claiming the keeper was pulled late',
+    /With the keeper pulled, 1 goal went into an empty net\./.test(enP3) && !/late/.test(enP3), enP3);
   ok('the report is written from the game that was just played',
     /Air Force drew with Army 3–3/.test(recap.paras[0]) && /Jack/.test(recap.paras[1]), recap.paras[0]);
 
