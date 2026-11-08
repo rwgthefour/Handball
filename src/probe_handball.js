@@ -56,8 +56,17 @@ if (process.argv[2] === '--prep-hosted') {
   fs.copyFileSync(path.join(REPO_HB, 'data', 'roster.xlsx'), path.join(stage, 'data', 'roster.xlsx'));
   fs.writeFileSync(path.join(stage, 'data', 'team.json'), JSON.stringify(TEST_TEAM));
   const PX = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
+  // an album lives as files in gallery/ (th = its thumbnail); paths that leave
+  // gallery/ or point at another site must not render
+  fs.mkdirSync(path.join(stage, 'gallery', 'thumbs'), { recursive: true });
+  const pxBytes = Buffer.from(PX.split(',')[1], 'base64');
+  fs.writeFileSync(path.join(stage, 'gallery', 'probe.jpg'), pxBytes);
+  fs.writeFileSync(path.join(stage, 'gallery', 'thumbs', 'probe.jpg'), pxBytes);
   fs.writeFileSync(path.join(stage, 'data', 'gallery.json'),
-    JSON.stringify({ v: 1, photos: [{ id: 'gh', cap: 'Hosted Gallery Check', src: PX }] }));
+    JSON.stringify({ v: 1, photos: [{ id: 'gh', cap: 'Hosted Gallery Check', src: PX },
+      { id: 'gf', cap: 'Hosted File Check', src: 'gallery/probe.jpg', th: 'gallery/thumbs/probe.jpg' },
+      { id: 'gx', cap: 'Escapes Gallery', src: 'gallery/../data/roster.xlsx' },
+      { id: 'gw', cap: 'Other Site', src: 'https://example.com/x.jpg' }] }));
   console.log('hosted staging ready:', stage);
   process.exit(0);
 }
@@ -1036,7 +1045,20 @@ const pidOf = num => _probePage.evaluate(n => {
   ok('published cards replace the starter pair (no merge ghosts)', !/Tierney/.test(hostedCards));
   await goTab(p5, 'gallery');
   ok('published gallery renders for visitors', /Hosted Gallery Check/.test(await p5.$eval('#galgrid', e => e.textContent))
-    && await p5.$$eval('#galgrid .gph img', im => im.length === 1));
+    && await p5.$$eval('#galgrid .gph img', im => im.length === 2));
+  const fileTile = await p5.evaluate(async () => {
+    const t = [...document.querySelectorAll('#galgrid .gph')].find(x => /Hosted File Check/.test(x.textContent));
+    if (!t) return null;
+    const im = t.querySelector('img'); im.loading = 'eager';
+    if (!im.complete) await new Promise(r => { im.onload = im.onerror = r; });
+    t.click();
+    return { grid: im.getAttribute('src'), loaded: im.naturalWidth > 0, big: document.getElementById('lb-img').getAttribute('src') };
+  });
+  await p5.evaluate(() => document.getElementById('lightbox').classList.remove('open'));
+  ok('a gallery/ file shows its thumbnail in the grid and the full photo in the lightbox',
+    !!fileTile && fileTile.grid === 'gallery/thumbs/probe.jpg' && fileTile.loaded && fileTile.big === 'gallery/probe.jpg', JSON.stringify(fileTile));
+  ok('gallery paths outside gallery/ or on another site never render',
+    !/Escapes Gallery|Other Site/.test(await p5.$eval('#galgrid', e => e.textContent)));
   // published-wins reconciliation: a stale device draft yields to the publish…
   await p5.evaluate(() => localStorage.setItem('afahb.team.v1', JSON.stringify({ v: 1, ts: 1,
     cards: [{ id: 's1', sec: 'player', name: 'Stale Local Card', role: '', badge: false, photo: '', pos: '', home: '', major: '', career: '' }] })));

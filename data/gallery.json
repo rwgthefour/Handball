@@ -1,0 +1,545 @@
+{
+ "v": 1,
+ "ts": 1794166783051,
+ "photos": [
+  {
+   "id": "wp-team",
+   "cap": "Air Force team handball at West Point",
+   "src": "gallery/west-point-team.jpg",
+   "th": "gallery/thumbs/west-point-team.jpg"
+  },
+  {
+   "id": "army-1106-01",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-01.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-01.jpg"
+  },
+  {
+   "id": "army-1106-02",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-02.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-02.jpg"
+  },
+  {
+   "id": "army-1106-03",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-03.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-03.jpg"
+  },
+  {
+   "id": "army-1106-04",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-04.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-04.jpg"
+  },
+  {
+   "id": "army-1106-05",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-05.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-05.jpg"
+  },
+  {
+   "id": "army-1106-06",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-06.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-06.jpg"
+  },
+  {
+   "id": "army-1106-07",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-07.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-07.jpg"
+  },
+  {
+   "id": "army-1106-08",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-08.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-08.jpg"
+  },
+  {
+   "id": "army-1106-09",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-09.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-09.jpg"
+  },
+  {
+   "id": "army-1106-10",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-10.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-10.jpg"
+  },
+  {
+   "id": "army-1106-11",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-11.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-11.jpg"
+  },
+  {
+   "id": "army-1106-12",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-12.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-12.jpg"
+  },
+  {
+   "id": "army-1106-13",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-13.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-13.jpg"
+  },
+  {
+   "id": "army-1106-14",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-14.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-14.jpg"
+  },
+  {
+   "id": "army-1106-15",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-15.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-15.jpg"
+  },
+  {
+   "id": "army-1106-16",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-16.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-16.jpg"
+  },
+  {
+   "id": "army-1106-17",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-17.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-17.jpg"
+  },
+  {
+   "id": "army-1106-18",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-18.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-18.jpg"
+  },
+  {
+   "id": "army-1106-19",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-19.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-19.jpg"
+  },
+  {
+   "id": "army-1106-20",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-20.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-20.jpg"
+  },
+  {
+   "id": "army-1106-21",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-21.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-21.jpg"
+  },
+  {
+   "id": "army-1106-22",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-22.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-22.jpg"
+  },
+  {
+   "id": "army-1106-23",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-23.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-23.jpg"
+  },
+  {
+   "id": "army-1106-24",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-24.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-24.jpg"
+  },
+  {
+   "id": "army-1106-25",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-25.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-25.jpg"
+  },
+  {
+   "id": "army-1106-26",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-26.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-26.jpg"
+  },
+  {
+   "id": "army-1106-27",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-27.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-27.jpg"
+  },
+  {
+   "id": "army-1106-28",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-28.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-28.jpg"
+  },
+  {
+   "id": "army-1106-29",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-29.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-29.jpg"
+  },
+  {
+   "id": "army-1106-30",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-30.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-30.jpg"
+  },
+  {
+   "id": "army-1106-31",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-31.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-31.jpg"
+  },
+  {
+   "id": "army-1106-32",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-32.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-32.jpg"
+  },
+  {
+   "id": "army-1106-33",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-33.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-33.jpg"
+  },
+  {
+   "id": "army-1106-34",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-34.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-34.jpg"
+  },
+  {
+   "id": "army-1106-35",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-35.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-35.jpg"
+  },
+  {
+   "id": "army-1106-36",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-36.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-36.jpg"
+  },
+  {
+   "id": "army-1106-37",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-37.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-37.jpg"
+  },
+  {
+   "id": "army-1106-38",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-38.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-38.jpg"
+  },
+  {
+   "id": "army-1106-39",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-39.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-39.jpg"
+  },
+  {
+   "id": "army-1106-40",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-40.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-40.jpg"
+  },
+  {
+   "id": "army-1106-41",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-41.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-41.jpg"
+  },
+  {
+   "id": "army-1106-42",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-42.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-42.jpg"
+  },
+  {
+   "id": "army-1106-43",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-43.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-43.jpg"
+  },
+  {
+   "id": "army-1106-44",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-44.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-44.jpg"
+  },
+  {
+   "id": "army-1106-45",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-45.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-45.jpg"
+  },
+  {
+   "id": "army-1106-46",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-46.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-46.jpg"
+  },
+  {
+   "id": "army-1106-47",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-47.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-47.jpg"
+  },
+  {
+   "id": "army-1106-48",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-48.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-48.jpg"
+  },
+  {
+   "id": "army-1106-49",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-49.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-49.jpg"
+  },
+  {
+   "id": "army-1106-50",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-50.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-50.jpg"
+  },
+  {
+   "id": "army-1106-51",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-51.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-51.jpg"
+  },
+  {
+   "id": "army-1106-52",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-52.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-52.jpg"
+  },
+  {
+   "id": "army-1106-53",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-53.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-53.jpg"
+  },
+  {
+   "id": "army-1106-54",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-54.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-54.jpg"
+  },
+  {
+   "id": "army-1106-55",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-55.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-55.jpg"
+  },
+  {
+   "id": "army-1106-56",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-56.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-56.jpg"
+  },
+  {
+   "id": "army-1106-57",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-57.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-57.jpg"
+  },
+  {
+   "id": "army-1106-58",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-58.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-58.jpg"
+  },
+  {
+   "id": "army-1106-59",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-59.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-59.jpg"
+  },
+  {
+   "id": "army-1106-60",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-60.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-60.jpg"
+  },
+  {
+   "id": "army-1106-61",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-61.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-61.jpg"
+  },
+  {
+   "id": "army-1106-62",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-62.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-62.jpg"
+  },
+  {
+   "id": "army-1106-63",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-63.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-63.jpg"
+  },
+  {
+   "id": "army-1106-64",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-64.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-64.jpg"
+  },
+  {
+   "id": "army-1106-65",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-65.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-65.jpg"
+  },
+  {
+   "id": "army-1106-66",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-66.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-66.jpg"
+  },
+  {
+   "id": "army-1106-67",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-67.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-67.jpg"
+  },
+  {
+   "id": "army-1106-68",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-68.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-68.jpg"
+  },
+  {
+   "id": "army-1106-69",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-69.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-69.jpg"
+  },
+  {
+   "id": "army-1106-70",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-70.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-70.jpg"
+  },
+  {
+   "id": "army-1106-71",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-71.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-71.jpg"
+  },
+  {
+   "id": "army-1106-72",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-72.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-72.jpg"
+  },
+  {
+   "id": "army-1106-73",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-73.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-73.jpg"
+  },
+  {
+   "id": "army-1106-74",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-74.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-74.jpg"
+  },
+  {
+   "id": "army-1106-75",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-75.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-75.jpg"
+  },
+  {
+   "id": "army-1106-76",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-76.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-76.jpg"
+  },
+  {
+   "id": "army-1106-77",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-77.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-77.jpg"
+  },
+  {
+   "id": "army-1106-78",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-78.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-78.jpg"
+  },
+  {
+   "id": "army-1106-79",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-79.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-79.jpg"
+  },
+  {
+   "id": "army-1106-81",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-81.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-81.jpg"
+  },
+  {
+   "id": "army-1106-82",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-82.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-82.jpg"
+  },
+  {
+   "id": "army-1106-83",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-83.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-83.jpg"
+  },
+  {
+   "id": "army-1106-84",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-84.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-84.jpg"
+  },
+  {
+   "id": "army-1106-85",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-85.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-85.jpg"
+  },
+  {
+   "id": "army-1106-86",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-86.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-86.jpg"
+  },
+  {
+   "id": "army-1106-87",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-87.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-87.jpg"
+  },
+  {
+   "id": "army-1106-88",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-88.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-88.jpg"
+  },
+  {
+   "id": "army-1106-89",
+   "cap": "",
+   "src": "gallery/army-2026-11-06-89.jpg",
+   "th": "gallery/thumbs/army-2026-11-06-89.jpg"
+  },
+  {
+   "id": "g-team",
+   "cap": "Air Force team handball",
+   "src": "teamphoto"
+  }
+ ]
+}
