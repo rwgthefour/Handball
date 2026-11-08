@@ -1,6 +1,6 @@
 {
  "v": 1,
- "ts": 1794166254046,
+ "ts": 1794166783051,
  "photos": [
   {
    "id": "wp-team",
@@ -483,12 +483,6 @@
    "th": "gallery/thumbs/army-2026-11-06-79.jpg"
   },
   {
-   "id": "army-1106-80",
-   "cap": "",
-   "src": "gallery/army-2026-11-06-80.jpg",
-   "th": "gallery/thumbs/army-2026-11-06-80.jpg"
-  },
-  {
    "id": "army-1106-81",
    "cap": "",
    "src": "gallery/army-2026-11-06-81.jpg",
@@ -541,18 +535,6 @@
    "cap": "",
    "src": "gallery/army-2026-11-06-89.jpg",
    "th": "gallery/thumbs/army-2026-11-06-89.jpg"
-  },
-  {
-   "id": "army-1106-90",
-   "cap": "",
-   "src": "gallery/army-2026-11-06-90.jpg",
-   "th": "gallery/thumbs/army-2026-11-06-90.jpg"
-  },
-  {
-   "id": "army-1106-91",
-   "cap": "",
-   "src": "gallery/army-2026-11-06-91.jpg",
-   "th": "gallery/thumbs/army-2026-11-06-91.jpg"
   },
   {
    "id": "g-team",
