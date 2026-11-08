@@ -1998,15 +1998,17 @@ $('#tm-reset').addEventListener('click', () => {
    Same publish shape as the team cards: admin adds photos in the browser
    (resized client-side), the working copy lives on that device, and
    DOWNLOAD gallery.json + a data/ upload publishes for everyone.
-   A photo src is a data URI, or a key into the build-time LOGOS bundle
-   (the starter entry shows the embedded team photo). */
+   A photo src is a data URI, a file in the repo's gallery/ folder (with
+   th, its thumbnail — a whole album stays out of gallery.json, which every
+   visitor fetches), or a key into the build-time LOGOS bundle (the starter
+   entry shows the embedded team photo). */
 const DEFAULT_GALLERY = { v: 1, photos: [
   { id: 'g-team', cap: 'Air Force team handball', src: 'teamphoto' },
 ] };
 function sanitizeGallery(t) {
   if (!t || !Array.isArray(t.photos)) return null;
   const photos = t.photos.filter(p => p && String(p.src || '').trim()).map(p => ({
-    id: String(p.id || uid()), cap: String(p.cap || ''), src: String(p.src) }));
+    id: String(p.id || uid()), cap: String(p.cap || ''), src: String(p.src), ...(p.th ? { th: String(p.th) } : {}) }));
   return photos.length ? { v: 1, ts: Number(t.ts) || 0, photos } : null;
 }
 let galLocal = sanitizeGallery(lsGet('afahb.gallery.v1', null));
@@ -2017,10 +2019,13 @@ function reconcileGallery() {          // published wins — same rule as the ca
     galLocal = null; lsSet('afahb.gallery.v1', null);
   }
 }
+const GAL_FILE = /^gallery\/[\w-]+(\/[\w-]+)*\.(jpe?g|png|webp)$/i;   // inside gallery/, no ../, no other site
 function galSrc(p) {
   if (p.src.startsWith('data:')) return p.src;
+  if (GAL_FILE.test(p.src)) return p.src;
   return (typeof LOGOS !== 'undefined' && LOGOS[p.src]) || null;
 }
+function galThumb(p) { return p.th && GAL_FILE.test(p.th) ? p.th : galSrc(p); }
 function ensureGalLocal() {
   if (!galLocal) galLocal = JSON.parse(JSON.stringify(activeGallery()));
   return galLocal;
@@ -2038,7 +2043,7 @@ function renderGallery() {
   const photos = activeGallery().photos.filter(p => galSrc(p));
   for (const p of photos) {
     const tile = el('div', { cls: 'gph', onclick: () => openLightbox(galSrc(p), p.cap) },
-      el('img', { src: galSrc(p), alt: p.cap || 'Team photo', loading: 'lazy' }),
+      el('img', { src: galThumb(p), alt: p.cap || 'Team photo', loading: 'lazy' }),
       el('div', { cls: 'cap', text: p.cap || '' }));
     grid.appendChild(tile);
   }
@@ -2053,7 +2058,7 @@ function renderGallery() {
       if (t) { t.cap = capIn.value.trim(); saveGalLocal(); }
     });
     const row = el('div', { cls: 'glrow' },
-      galSrc(p) ? el('img', { src: galSrc(p), alt: '' }) : null,
+      galSrc(p) ? el('img', { src: galThumb(p), alt: '', loading: 'lazy' }) : null,
       capIn,
       el('button', { text: '↑', title: 'Move up', onclick: () => {
         ensureGalLocal(); if (i <= 0) return;

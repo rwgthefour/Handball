@@ -27,6 +27,12 @@ old `rwgthefour.github.io/Handball/` link redirects) — every push redeploys it
   press DOWNLOAD team.json and upload it to this folder on github.com —
   the cards go live for everyone. `photos/` remains a build-time fallback for
   the starter cards only.
+- `data/gallery.json` + `gallery/` — the published photo gallery. A few photos
+  can be added on the site (sign in as admin → Gallery page → Gallery manager,
+  then DOWNLOAD gallery.json and upload it to `data/`). A whole album goes in
+  as files instead: each photo in `gallery/` (1280 px long edge) with a
+  thumbnail in `gallery/thumbs/` (720 px), listed in gallery.json by path
+  (`src`, `th`), so the gallery.json every visitor fetches stays small.
 - Nothing a visitor does uploads anywhere; live tracking saves in that browser
   and moves as Excel files.
 
